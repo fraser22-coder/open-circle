@@ -1,0 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { --navy: #1b1f3b; --navy2: #303e66; --navy3: #3c4f80; --gold: #f9d378; }
+body { background: var(--navy); color: white; font-family: 'Poppins', sans-serif; }
+::selection { background: var(--gold); color: var(--navy); }
+input, select, textarea { outline: none; }
+input:focus, select:focus, textarea:focus { border-color: var(--gold) !important; }
