@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import NavBar from '@/components/NavBar'
@@ -11,15 +11,16 @@ const CATEGORY_LABELS: Record<string, string> = {
   experience: '🎯 Experience', entertainment: '🎭 Entertainment',
 }
 
-export default function VendorProfilePage({ params }: { params: { slug: string } }) {
+export default function VendorProfilePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
   const [vendor, setVendor] = useState<Vendor | null>(null)
   const [slide, setSlide] = useState(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.from('vendors').select('*').eq('slug', params.slug).single()
+    supabase.from('vendors').select('*').eq('slug', slug).single()
       .then(({ data }) => { setVendor(data); setLoading(false) })
-  }, [params.slug])
+ }, [slug])
 
   useEffect(() => {
     if (!vendor?.photos?.length) return
