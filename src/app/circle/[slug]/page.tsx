@@ -26,6 +26,17 @@ useEffect(() => {
       console.log("DATA:", data)
       console.log("ERROR:", error)
 
+      if (error) {
+        console.error("SUPABASE ERROR:", error)
+        setVendor(null)
+      } else {
+        setVendor(data)
+      }
+
+      setLoading(false)
+    })
+}, [params.slug])
+
       setVendor(data)
       setLoading(false)
     })
