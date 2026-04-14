@@ -10,12 +10,10 @@ const CATEGORY_LABELS: Record<string, string> = {
 export default function VendorCard({ vendor }: { vendor: Vendor }) {
   return (
     <Link href={`/circle/${vendor.slug}`} className="block group">
-      <div
-        className="rounded-2xl overflow-hidden border transition-all duration-200 group-hover:-translate-y-1 group-hover:shadow-2xl"
-        style={{ background: '#303e66', borderColor: '#3c4f80' }}
-        onMouseEnter={e => (e.currentTarget.style.borderColor = '#f9d378')}
-        onMouseLeave={e => (e.currentTarget.style.borderColor = '#3c4f80')}
-      >
+     <div
+  className="rounded-2xl overflow-hidden border border-[#3c4f80] hover:border-[#f9d378] transition-all duration-200 group-hover:-translate-y-1 group-hover:shadow-2xl"
+  style={{ background: '#303e66' }}
+>
         {/* Image */}
         <div className="relative h-[210px] w-full overflow-hidden" style={{ background: '#1b1f3b' }}>
           {vendor.photos?.[0] ? (
