@@ -15,16 +15,20 @@ export default function VendorProfilePage({ params }: { params: { slug: string }
   const [slide, setSlide] = useState(0)
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-supabase
-  .from('vendors')
-  .select('*')
-  .eq('slug', params.slug)
-  .single()
-  .then(({ data }) => {
-    setVendor(data)
-    setLoading(false)
-  })
+useEffect(() => {
+  supabase
+    .from('vendors')
+    .select('*')
+    .eq('slug', params.slug)
+    .single()
+    .then(({ data, error }) => {
+      console.log("SLUG:", params.slug)
+      console.log("DATA:", data)
+      console.log("ERROR:", error)
+
+      setVendor(data)
+      setLoading(false)
+    })
 }, [params.slug])
 
   useEffect(() => {
