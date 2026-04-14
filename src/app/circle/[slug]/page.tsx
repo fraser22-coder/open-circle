@@ -16,7 +16,11 @@ export default function VendorProfilePage({ params }: { params: { slug: string }
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.from('vendors').select('*').eq('slug', params.slug).single()
+supabase
+  .from('vendors')
+  .select('*')
+  .ilike('slug', `%${params.slug}%`)
+  .single()
       .then(({ data }) => { setVendor(data); setLoading(false) })
   }, [params.slug])
 
