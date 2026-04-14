@@ -3,6 +3,7 @@ import { useState } from 'react'
 import NavBar from '@/components/NavBar'
 
 type Step = 1 | 2 | 3 | 'done'
+const stepNum = (s: Step): number => s === 'done' ? 99 : (s as number)
 const OCCASIONS = [
   { icon: '🏢', label: 'Corporate Event', value: 'Corporate Event' },
   { icon: '🎂', label: 'Birthday Party', value: 'Birthday Party' },
@@ -124,10 +125,10 @@ export default function BookPage() {
           <div className="flex items-center justify-center gap-3 mb-12">
             <StepCircle n={1} />
             <div className="flex-1 h-[2px] max-w-[60px] transition-all"
-              style={{ background: (typeof step === 'number' && step > 1) || step === 'done' ? '#52b788' : '#3c4f80' }} />
+              style={{ background: stepNum(step) > 1 ? '#52b788' : '#3c4f80' }} />
             <StepCircle n={2} />
             <div className="flex-1 h-[2px] max-w-[60px] transition-all"
-              style={{ background: (typeof step === 'number' && step > 2) || step === 'done' ? '#52b788' : '#3c4f80' }} />
+              style={{ background: stepNum(step) > 2 ? '#52b788' : '#3c4f80' }} />
             <StepCircle n={3} />
           </div>
         )}
