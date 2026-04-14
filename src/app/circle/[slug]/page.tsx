@@ -10,6 +10,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   food: '🍕 Food', drinks: '🍹 Drinks',
   experience: '🎯 Experience', entertainment: '🎭 Entertainment',
 }
+
 export default function VendorProfilePage({ params }: { params: { slug: string } }) {
   const [vendor, setVendor] = useState<Vendor | null>(null)
   const [slide, setSlide] = useState(0)
@@ -18,7 +19,7 @@ export default function VendorProfilePage({ params }: { params: { slug: string }
   useEffect(() => {
     supabase.from('vendors').select('*').eq('slug', params.slug).single()
       .then(({ data }) => { setVendor(data); setLoading(false) })
-}, [params.slug])
+  }, [params.slug])
 
   useEffect(() => {
     if (!vendor?.photos?.length) return
