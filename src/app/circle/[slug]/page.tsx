@@ -19,10 +19,13 @@ export default function VendorProfilePage({ params }: { params: { slug: string }
 supabase
   .from('vendors')
   .select('*')
-  .ilike('slug', `%${params.slug}%`)
+  .eq('slug', params.slug)
   .single()
-      .then(({ data }) => { setVendor(data); setLoading(false) })
-  }, [params.slug])
+  .then(({ data }) => {
+    setVendor(data)
+    setLoading(false)
+  })
+}, [params.slug])
 
   useEffect(() => {
     if (!vendor?.photos?.length) return
