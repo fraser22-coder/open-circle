@@ -1,3 +1,4 @@
+'use client'
 import { useState, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -15,32 +16,18 @@ export default function VendorProfilePage({ params }: { params: { slug: string }
   const [slide, setSlide] = useState(0)
   const [loading, setLoading] = useState(true)
 
-useEffect(() => {
-  supabase
-    .from('vendors')
-    .select('*')
-    .eq('slug', params.slug)
-    .single()
-    .then(({ data, error }) => {
-      console.log("SLUG:", params.slug)
-      console.log("DATA:", data)
-      console.log("ERROR:", error)
-
-      if (error) {
-        console.error("SUPABASE ERROR:", error)
-        setVendor(null)
-      } else {
+  useEffect(() => {
+    supabase
+      .from('vendors')
+      .select('*')
+      .eq('slug', params.slug)
+      .single()
+      .then(({ data, error }) => {
+        if (error) console.error('Supabase error:', error)
         setVendor(data)
-      }
-
-      setLoading(false)
-    })
-}, [params.slug])
-
-      setVendor(data)
-      setLoading(false)
-    })
-}, [params.slug])
+        setLoading(false)
+      })
+  }, [params.slug])
 
   useEffect(() => {
     if (!vendor?.photos?.length) return
@@ -74,7 +61,6 @@ useEffect(() => {
     <>
       <NavBar />
 
-      {/* Back */}
       <div className="px-10 py-4 border-b" style={{ background: '#303e66', borderColor: '#3c4f80' }}>
         <Link href="/circle" className="text-gold text-[13px] font-semibold hover:opacity-75 flex items-center gap-1.5">
           ← Back to Our Circle
@@ -83,7 +69,6 @@ useEffect(() => {
 
       <div className="max-w-[1000px] mx-auto px-10 py-10">
 
-        {/* Slideshow */}
         <div className="relative w-full rounded-2xl overflow-hidden mb-8" style={{ aspectRatio: '16/9', background: '#303e66' }}>
           {photos.length > 0 ? (
             <>
@@ -102,17 +87,14 @@ useEffect(() => {
               </span>
             </div>
           )}
-
-          {/* Arrows */}
           {photos.length > 1 && (
             <>
               <button onClick={() => setSlide(s => (s - 1 + photos.length) % photos.length)}
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-gold text-lg z-10 transition-all hover:bg-[#303e66]"
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-gold text-lg z-10"
                 style={{ background: 'rgba(27,31,59,0.8)', border: '1px solid #3c4f80' }}>‹</button>
               <button onClick={() => setSlide(s => (s + 1) % photos.length)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-gold text-lg z-10 transition-all hover:bg-[#303e66]"
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-gold text-lg z-10"
                 style={{ background: 'rgba(27,31,59,0.8)', border: '1px solid #3c4f80' }}>›</button>
-              {/* Dots */}
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
                 {photos.map((_, i) => (
                   <button key={i} onClick={() => setSlide(i)}
@@ -124,13 +106,9 @@ useEffect(() => {
           )}
         </div>
 
-        {/* Content grid */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
-
-          {/* Main */}
           <div>
             <div className="flex items-start gap-5 mb-6">
-              {/* Logo */}
               <div className="w-20 h-20 rounded-xl flex items-center justify-center text-4xl flex-shrink-0 border"
                 style={{ background: '#2a1000', borderColor: '#3c4f80' }}>
                 {vendor.logo_url
@@ -158,10 +136,7 @@ useEffect(() => {
               {vendor.description}
             </p>
 
-            {/* Details grid */}
-            <p className="text-[11px] font-bold uppercase tracking-[2px] mb-3.5" style={{ color: '#baa182' }}>
-              Vendor Details
-            </p>
+            <p className="text-[11px] font-bold uppercase tracking-[2px] mb-3.5" style={{ color: '#baa182' }}>Vendor Details</p>
             <div className="grid grid-cols-2 gap-3 mb-8">
               {[
                 { label: 'Vendor Type', value: CATEGORY_LABELS[vendor.category], sub: vendor.category },
@@ -178,7 +153,6 @@ useEffect(() => {
               ))}
             </div>
 
-            {/* Suitable for */}
             {vendor.suitable_for?.length > 0 && (
               <>
                 <p className="text-[11px] font-bold uppercase tracking-[2px] mb-3" style={{ color: '#baa182' }}>Suitable For</p>
@@ -194,13 +168,12 @@ useEffect(() => {
             )}
           </div>
 
-          {/* Sidebar */}
           <div>
             <div className="rounded-2xl p-7 border sticky top-[90px]"
               style={{ background: '#303e66', borderColor: '#3c4f80' }}>
               <h3 className="text-[16px] font-bold text-white mb-2">Interested in this vendor?</h3>
               <p className="text-[13px] font-light leading-relaxed mb-5" style={{ color: '#c5b098' }}>
-                Submit your event details and {vendor.name} will come back with availability and a quote if required.
+                Submit your event details and {vendor.name} will come back with availability and a quote.
               </p>
               <Link href={`/book?vendor=${vendor.slug}`}
                 className="block w-full text-center py-3.5 rounded-full text-[15px] font-bold mb-2.5 transition-opacity hover:opacity-90"
@@ -208,27 +181,19 @@ useEffect(() => {
                 Request This Vendor
               </Link>
               <Link href="/book"
-                className="block w-full text-center py-3 rounded-full text-[13px] font-semibold transition-all border hover:bg-gold hover:text-navy"
+                className="block w-full text-center py-3 rounded-full text-[13px] font-semibold transition-all border"
                 style={{ border: '1.5px solid #f9d378', color: '#f9d378' }}>
                 Add to Event Brief
               </Link>
-
               <hr className="my-5 border-t" style={{ borderColor: '#3c4f80' }} />
-
               <p className="text-[11px] font-bold uppercase tracking-[2px] mb-3" style={{ color: '#baa182' }}>Availability</p>
               <div className="text-[12px] mb-2 flex items-center gap-2" style={{ color: '#baa182' }}>
-                <span>✅</span>
-                <span>
-                  <span className="inline-block w-2 h-2 rounded-full mr-1" style={{ background: '#52b788' }} />
-                  Currently accepting bookings
-                </span>
+                <span>✅</span><span>Currently accepting bookings</span>
               </div>
               <div className="text-[12px] flex items-center gap-2" style={{ color: '#baa182' }}>
                 <span>📅</span><span>Weekends &amp; weekdays available</span>
               </div>
-
               <hr className="my-5 border-t" style={{ borderColor: '#3c4f80' }} />
-
               <p className="text-[11px] font-bold uppercase tracking-[2px] mb-3" style={{ color: '#baa182' }}>Part of the Circle since</p>
               <div className="text-[12px] flex items-center gap-2 mb-2">
                 <span>⭕</span>
