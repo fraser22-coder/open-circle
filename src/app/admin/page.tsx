@@ -10,6 +10,7 @@ export default function AdminPage() {
   const [pw, setPw] = useState('')
   const [tab, setTab] = useState<'enquiries' | 'vendors' | 'applications'>('enquiries')
   const [enquiries, setEnquiries] = useState<Enquiry[]>([])
+  const [vendors, setVendors] = useState<Vendor[]>([])
   const [applications, setApplications] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -22,11 +23,16 @@ export default function AdminPage() {
   useEffect(() => {
     if (!authed) return
     setLoading(true)
-   Promise.all([
+    Promise.all([
       fetch('/api/enquiries').then(r => r.json()),
       fetch('/api/vendors').then(r => r.json()),
       fetch('/api/vendor-applications').then(r => r.json()),
-    ]).then(([eq, vd, apps]) => { setEnquiries(eq); setVendors(vd); setApplications(apps); setLoading(false) })
+    ]).then(([eq, vd, apps]) => {
+      setEnquiries(eq)
+      setVendors(vd)
+      setApplications(apps)
+      setLoading(false)
+    })
   }, [authed])
 
   const updateEnquiryStatus = async (id: string, status: string) => {
@@ -86,13 +92,12 @@ export default function AdminPage() {
       </div>
 
       <div className="max-w-[1200px] mx-auto px-10 py-8">
-        {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           {[
             { label: 'Total Enquiries', value: enquiries.length },
             { label: 'New', value: enquiries.filter(e => e.status === 'new').length },
             { label: 'Active Vendors', value: vendors.filter(v => v.is_active).length },
-            { label: 'Total Vendors', value: vendors.length },
+            { label: 'Applications', value: applications.filter(a => a.status === 'pending').length },
           ].map(s => (
             <div key={s.label} className="rounded-2xl p-5 border text-center"
               style={{ background: '#303e66', borderColor: '#3c4f80' }}>
@@ -102,9 +107,8 @@ export default function AdminPage() {
           ))}
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-2 mb-6">
-         {(['enquiries','vendors','applications'] as const).map(t => (
+          {(['enquiries', 'vendors', 'applications'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className="px-6 py-2.5 rounded-full text-[13px] font-semibold transition-all capitalize"
               style={{
@@ -118,8 +122,6 @@ export default function AdminPage() {
         </div>
 
         {loading && <div className="text-gold animate-pulse py-10 text-center">Loading…</div>}
-
-        {/* ENQUIRIES TAB */}
         {!loading && tab === 'enquiries' && (
           <div className="space-y-4">
             {enquiries.length === 0 && (
@@ -161,7 +163,6 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* VENDORS TAB */}
         {!loading && tab === 'vendors' && (
           <div className="space-y-4">
             {vendors.map(v => (
@@ -191,7 +192,8 @@ export default function AdminPage() {
                 </button>
               </div>
             ))}
-          </div>{/* APPLICATIONS TAB */}
+          </div>
+        )}
         {!loading && tab === 'applications' && (
           <div className="space-y-4">
             {applications.length === 0 && (
@@ -209,8 +211,10 @@ export default function AdminPage() {
                     </p>
                   </div>
                   <span className="px-3 py-1 rounded-full text-[11px] font-bold capitalize"
-                    style={{ background: a.status === 'approved' ? '#1d4731' : a.status === 'declined' ? '#3a1a1a' : '#1d3a5c',
-                      color: a.status === 'approved' ? '#b7e4c7' : a.status === 'declined' ? '#e07070' : '#7ec8e3' }}>
+                    style={{
+                      background: a.status === 'approved' ? '#1d4731' : a.status === 'declined' ? '#3a1a1a' : '#1d3a5c',
+                      color: a.status === 'approved' ? '#b7e4c7' : a.status === 'declined' ? '#e07070' : '#7ec8e3'
+                    }}>
                     {a.status}
                   </span>
                 </div>
@@ -234,8 +238,6 @@ export default function AdminPage() {
             ))}
           </div>
         )}
-        )}
-        
       </div>
 
       <footer className="mt-16 py-7 px-10 text-center text-[12px] border-t"
