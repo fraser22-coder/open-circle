@@ -17,7 +17,7 @@ export default function VendorCard({ vendor }: { vendor: Vendor }) {
         {/* Image */}
         <div className="relative h-[210px] w-full overflow-hidden" style={{ background: '#1b1f3b' }}>
           {vendor.photos?.[0] ? (
-            <Image src={vendor.photos[0]} alt={vendor.name} fill className="object-contain" />
+            <Image src={vendor.photos[0]} alt={vendor.name} fill className="object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center flex-col gap-2"
               style={{ background: 'linear-gradient(135deg,#1a0a05,#3d1a08,#c75a00)' }}>
