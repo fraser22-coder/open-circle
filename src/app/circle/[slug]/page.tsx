@@ -195,10 +195,12 @@ export default function VendorProfilePage({ params }: { params: { slug: string }
               </div>
               <hr className="my-5 border-t" style={{ borderColor: '#3c4f80' }} />
               <p className="text-[11px] font-bold uppercase tracking-[2px] mb-3" style={{ color: '#baa182' }}>Part of the Circle since</p>
-              <div className="text-[12px] flex items-center gap-2 mb-2">
-                <span>⭕</span>
-                <span className="font-semibold text-gold">{vendor.is_beta ? 'Beta Member' : 'Circle Member'}</span>
-              </div>
+<div className="text-[12px] flex items-center gap-2 mb-2">
+  <span>⭕</span>
+  <span className="font-semibold text-gold">
+    {vendor.member_since ? new Date(vendor.member_since).getFullYear() : '2024'} · {vendor.is_beta ? 'Beta Member' : 'Circle Member'}
+  </span>
+</div>
               <div className="text-[11px] flex items-center gap-2" style={{ color: '#baa182' }}>
                 <span>🔒</span><span>Vetted &amp; approved by Open Circle Markets</span>
               </div>
