@@ -8,9 +8,9 @@ const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'opencircle2024
 export default function AdminPage() {
   const [authed, setAuthed] = useState(false)
   const [pw, setPw] = useState('')
-  const [tab, setTab] = useState<'enquiries' | 'vendors'>('enquiries')
+  const [tab, setTab] = useState<'enquiries' | 'vendors' | 'applications'>('enquiries')
   const [enquiries, setEnquiries] = useState<Enquiry[]>([])
-  const [vendors, setVendors] = useState<Vendor[]>([])
+  const [applications, setApplications] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
   const login = (e: React.FormEvent) => {
@@ -22,10 +22,11 @@ export default function AdminPage() {
   useEffect(() => {
     if (!authed) return
     setLoading(true)
-    Promise.all([
+   Promise.all([
       fetch('/api/enquiries').then(r => r.json()),
       fetch('/api/vendors').then(r => r.json()),
-    ]).then(([eq, vd]) => { setEnquiries(eq); setVendors(vd); setLoading(false) })
+      fetch('/api/vendor-applications').then(r => r.json()),
+    ]).then(([eq, vd, apps]) => { setEnquiries(eq); setVendors(vd); setApplications(apps); setLoading(false) })
   }, [authed])
 
   const updateEnquiryStatus = async (id: string, status: string) => {
@@ -103,7 +104,7 @@ export default function AdminPage() {
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
-          {(['enquiries','vendors'] as const).map(t => (
+         {(['enquiries','vendors','applications'] as const).map(t => (
             <button key={t} onClick={() => setTab(t)}
               className="px-6 py-2.5 rounded-full text-[13px] font-semibold transition-all capitalize"
               style={{
@@ -111,7 +112,7 @@ export default function AdminPage() {
                 color: tab === t ? '#1b1f3b' : '#c5b098',
                 border: `1.5px solid ${tab === t ? '#f9d378' : '#3c4f80'}`,
               }}>
-              {t} ({t === 'enquiries' ? enquiries.length : vendors.length})
+              {t} ({t === 'enquiries' ? enquiries.length : t === 'vendors' ? vendors.length : applications.length})
             </button>
           ))}
         </div>
@@ -190,8 +191,51 @@ export default function AdminPage() {
                 </button>
               </div>
             ))}
+          </div>{/* APPLICATIONS TAB */}
+        {!loading && tab === 'applications' && (
+          <div className="space-y-4">
+            {applications.length === 0 && (
+              <div className="text-center py-12 rounded-2xl border" style={{ background: '#303e66', borderColor: '#3c4f80' }}>
+                <p className="text-gold font-semibold">No applications yet</p>
+              </div>
+            )}
+            {applications.map((a: any) => (
+              <div key={a.id} className="rounded-2xl p-6 border" style={{ background: '#303e66', borderColor: '#3c4f80' }}>
+                <div className="flex justify-between flex-wrap gap-3 mb-4">
+                  <div>
+                    <h3 className="text-[17px] font-bold text-white">{a.business_name}</h3>
+                    <p className="text-[12px] mt-0.5" style={{ color: '#baa182' }}>
+                      {a.contact_name} · {a.email} · {a.phone}
+                    </p>
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-[11px] font-bold capitalize"
+                    style={{ background: a.status === 'approved' ? '#1d4731' : a.status === 'declined' ? '#3a1a1a' : '#1d3a5c',
+                      color: a.status === 'approved' ? '#b7e4c7' : a.status === 'declined' ? '#e07070' : '#7ec8e3' }}>
+                    {a.status}
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[12px] mb-4">
+                  <div><span style={{ color: '#baa182' }}>Category</span><br/><strong className="text-white capitalize">{a.category}</strong></div>
+                  <div><span style={{ color: '#baa182' }}>Location</span><br/><strong className="text-white">{a.location || '—'}</strong></div>
+                  <div><span style={{ color: '#baa182' }}>Price Range</span><br/><strong className="text-white">{a.price_range || '—'}</strong></div>
+                  <div><span style={{ color: '#baa182' }}>Space</span><br/><strong className="text-white">{a.space_required || '—'}</strong></div>
+                </div>
+                {a.description && (
+                  <p className="text-[12px] p-3 rounded-xl mb-3" style={{ background: '#1b1f3b', color: '#c5b098' }}>
+                    <strong style={{ color: '#baa182' }}>About: </strong>{a.description}
+                  </p>
+                )}
+                {a.why_join && (
+                  <p className="text-[12px] p-3 rounded-xl" style={{ background: '#1b1f3b', color: '#c5b098' }}>
+                    <strong style={{ color: '#baa182' }}>Why join: </strong>{a.why_join}
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
         )}
+        )}
+        
       </div>
 
       <footer className="mt-16 py-7 px-10 text-center text-[12px] border-t"
