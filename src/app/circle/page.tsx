@@ -1,4 +1,6 @@
 export const dynamic = 'force-dynamic'
+export const fetchCache = 'force-no-store'
+
 import NavBar from '@/components/NavBar'
 import VendorCard from '@/components/VendorCard'
 import { supabase } from '@/lib/supabase'
