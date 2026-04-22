@@ -3,12 +3,10 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const OCMLogo = () => (
-  <svg width="46" height="46" viewBox="0 0 46 46" fill="none">
-    <circle cx="23" cy="23" r="21" stroke="#f9d378" strokeWidth="3" fill="#1b1f3b"/>
-    <text x="23" y="20" textAnchor="middle" fill="#f9d378" fontSize="8" fontWeight="700" fontFamily="Poppins,sans-serif">OPEN</text>
-    <text x="23" y="31" textAnchor="middle" fill="#f9d378" fontSize="8" fontWeight="700" fontFamily="Poppins,sans-serif">CIRCLE</text>
-    <circle cx="23" cy="6" r="3" fill="#f9d378"/>
-  </svg>
+ import Image from 'next/image'
+
+const OCMLogo = () => (
+  <Image src="/Opencirclelogo-1.png" alt="Open Circle Markets" width={46} height={46} />
 )
 
 export default function NavBar() {
