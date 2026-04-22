@@ -1,12 +1,11 @@
 'use client'
+import Image from 'next/image'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 
 const OCMLogo = () => (
- import Image from 'next/image'
-
-const OCMLogo = () => (
-  <Image src="/Opencirclelogo-1.png" alt="Open Circle Markets" width={46} height={46} />
+  <Image src="/Opencirclelogo-1.png" alt="Open Circle Markets" width={46} height={46} style={{ objectFit: 'contain' }} />
 )
 
 export default function NavBar() {
