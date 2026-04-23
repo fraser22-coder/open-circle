@@ -18,7 +18,6 @@ export interface Vendor {
   logo_url: string | null
   suitable_for: string[]
   user_id: string | null  // linked vendor login
-  member_since: string | null
 }
 
 export interface Enquiry {
@@ -44,6 +43,8 @@ export interface Enquiry {
   phone: string
   organisation: string
   referral_source: string
+  // Shortlisted vendors from the brief
+  brief_vendors?: { slug: string; name: string; category: string }[]
   // Status
   status: 'new' | 'sent_to_vendors' | 'responses_received' | 'closed'
 }
