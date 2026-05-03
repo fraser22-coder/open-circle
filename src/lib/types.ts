@@ -18,6 +18,8 @@ export interface Vendor {
   logo_url: string | null
   suitable_for: string[]
   user_id: string | null  // linked vendor login
+  instagram: string | null
+  website: string | null
 }
 
 export interface Enquiry {
