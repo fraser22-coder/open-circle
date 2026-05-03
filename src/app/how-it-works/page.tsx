@@ -199,7 +199,7 @@ export default function HowItWorksPage() {
       </div>
 
       {/* FAQ */}
-      <div style={{ background: '#303e66' }} className="border-t border-b" style={{ borderColor: '#3c4f80' }}>
+      <div className="border-t border-b" style={{ background: '#303e66', borderColor: '#3c4f80' }}>
         <div className="max-w-[800px] mx-auto px-6 sm:px-10 py-16">
           <h2 className="text-[28px] font-black text-white mb-8">Common questions</h2>
 
