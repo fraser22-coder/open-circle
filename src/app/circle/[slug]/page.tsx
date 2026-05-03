@@ -8,6 +8,8 @@ interface Props {
   params: { slug: string }
 }
 
+const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://thecircle.opencirclemarkets.com'
+
 async function getVendor(slug: string): Promise<Vendor | null> {
   const { data } = await supabaseAdmin
     .from('vendors')
@@ -34,7 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title,
       description,
-      url: `https://open-circle-topaz.vercel.app/circle/${vendor.slug}`,
+      url: `${BASE_URL}/circle/${vendor.slug}`,
       images: image ? [{ url: image, width: 1200, height: 630, alt: vendor.name }] : [],
     },
     twitter: {
@@ -46,8 +48,49 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
+function buildJsonLd(vendor: Vendor) {
+  const categoryMap: Record<string, string> = {
+    food: 'FoodEstablishment',
+    drinks: 'BarOrPub',
+    entertainment: 'EntertainmentBusiness',
+    experience: 'LocalBusiness',
+  }
+  const type = categoryMap[vendor.category] ?? 'LocalBusiness'
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': type,
+    name: vendor.name,
+    description: vendor.description ?? undefined,
+    url: `${BASE_URL}/circle/${vendor.slug}`,
+    image: vendor.photos?.[0] ?? undefined,
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Auckland',
+      addressCountry: 'NZ',
+    },
+    areaServed: {
+      '@type': 'City',
+      name: 'Auckland',
+    },
+    ...(vendor.instagram ? { sameAs: [`https://instagram.com/${vendor.instagram.replace(/^@/, '')}`] } : {}),
+    ...(vendor.website ? { url: vendor.website } : {}),
+  }
+}
+
 export default async function VendorProfilePage({ params }: Props) {
   const vendor = await getVendor(params.slug)
   if (!vendor) notFound()
-  return <VendorProfileClient vendor={vendor} />
+
+  const jsonLd = buildJsonLd(vendor)
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <VendorProfileClient vendor={vendor} />
+    </>
+  )
 }

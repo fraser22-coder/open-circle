@@ -5,6 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { sendEnquiryConfirmation, sendAdminAlert, sendVendorOpportunity } from '@/lib/email'
 import { Enquiry, Vendor } from '@/lib/types'
 import { checkRateLimit, getClientIp } from '@/lib/rateLimit'
+import { requireAdmin } from '@/lib/adminAuth'
 import {
   sanitizeString, sanitizeEmail, sanitizePhone,
   sanitizeNumber, sanitizeEnum, sanitizeEnumArray, sanitizeStringArray,
@@ -18,7 +19,7 @@ const VALID_CATEGORIES = ['food', 'drinks', 'experience', 'entertainment']
 const VALID_EVENT_TYPES = ['selling', 'catering', 'both']
 
 export async function POST(req: NextRequest) {
-  // ── 1. Rate limit: 5 submissions per IP per 10 minutes ──────────────────────
+  // ── Rate limit: 5 per IP per 10 minutes ────────────────────────────────────
   const ip = getClientIp(req)
   const { allowed, retryAfter } = checkRateLimit(`enquiry:${ip}`, 5, 10 * 60 * 1000)
   if (!allowed) {
@@ -28,21 +29,17 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // ── 2. Parse body ────────────────────────────────────────────────────────────
   let raw: Record<string, unknown>
-  try {
-    raw = await req.json()
-  } catch {
+  try { raw = await req.json() } catch {
     return NextResponse.json({ error: 'Invalid request body.' }, { status: 400 })
   }
 
-  // ── 3. Honeypot check (bot trap — must be empty) ─────────────────────────────
+  // Honeypot check
   if (raw.website || raw.url || raw.hp) {
-    // Silently accept so bots don't know they were blocked
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true }) // silent accept
   }
 
-  // ── 4. Sanitize & validate all inputs ────────────────────────────────────────
+  // Sanitize
   const occasion = sanitizeEnum(raw.occasion, VALID_OCCASIONS as any)
   const event_date = sanitizeString(raw.event_date, 20)
   const guest_count = sanitizeNumber(raw.guest_count, 1, 100000)
@@ -68,7 +65,7 @@ export async function POST(req: NextRequest) {
       })).filter(v => v.slug && v.name)
     : []
 
-  // Required fields
+  // Validate required
   const missing: string[] = []
   if (!occasion) missing.push('occasion')
   if (!event_date || !/^\d{4}-\d{2}-\d{2}$/.test(event_date)) missing.push('event_date')
@@ -81,13 +78,9 @@ export async function POST(req: NextRequest) {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) missing.push('email')
 
   if (missing.length) {
-    return NextResponse.json(
-      { error: 'Missing required fields.', fields: missing },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: 'Missing required fields.', fields: missing }, { status: 400 })
   }
 
-  // ── 5. Save to database (clean data only) ────────────────────────────────────
   try {
     const { data: enquiry, error } = await supabaseAdmin
       .from('enquiries')
@@ -105,13 +98,10 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error
 
-    // ── 6. Send emails ───────────────────────────────────────────────────────────
     await sendEnquiryConfirmation(enquiry as Enquiry)
     await sendAdminAlert(enquiry as Enquiry)
 
-    // ── 7. Notify matching vendors (shortlisted first) ───────────────────────────
     const briefSlugs = brief_vendors.map(v => v.slug)
-
     const { data: vendors } = await supabaseAdmin
       .from('vendors')
       .select('*')
@@ -134,11 +124,40 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+// ── Admin-only routes ─────────────────────────────────────────────────────────
+
+export async function GET(req: NextRequest) {
+  const deny = requireAdmin(req)
+  if (deny) return deny
+
   const { data, error } = await supabaseAdmin
     .from('enquiries')
     .select('*')
     .order('created_at', { ascending: false })
+  if (error) return NextResponse.json({ error }, { status: 500 })
+  return NextResponse.json(data)
+}
+
+export async function PATCH(req: NextRequest) {
+  const deny = requireAdmin(req)
+  if (deny) return deny
+
+  let body: { id: string; status: string }
+  try { body = await req.json() } catch {
+    return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
+  }
+
+  const { id, status } = body
+  if (!id || !['new', 'sent_to_vendors', 'responses_received', 'closed'].includes(status)) {
+    return NextResponse.json({ error: 'Invalid status.' }, { status: 400 })
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from('enquiries')
+    .update({ status })
+    .eq('id', id)
+    .select()
+    .single()
   if (error) return NextResponse.json({ error }, { status: 500 })
   return NextResponse.json(data)
 }
