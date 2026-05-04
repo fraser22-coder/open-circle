@@ -48,8 +48,8 @@ export default function PrivacyPage() {
           <p>
             We are based in Auckland, New Zealand, and operate under New Zealand law, including the Privacy Act 2020.
             If you have questions about this policy, contact us at{' '}
-            <a href="mailto:hello@opencirclemarkets.com" className="text-gold hover:underline">
-              hello@opencirclemarkets.com
+            <a href="mailto:support@opencirclemarkets.com" className="text-gold hover:underline">
+              support@opencirclemarkets.com
             </a>.
           </p>
         </Section>
@@ -127,8 +127,8 @@ export default function PrivacyPage() {
           </ul>
           <p>
             To exercise any of these rights, email{' '}
-            <a href="mailto:hello@opencirclemarkets.com" className="text-gold hover:underline">
-              hello@opencirclemarkets.com
+            <a href="mailto:support@opencirclemarkets.com" className="text-gold hover:underline">
+              support@opencirclemarkets.com
             </a>{' '}
             with your request. We will respond within 20 working days as required by law.
           </p>
@@ -183,8 +183,8 @@ export default function PrivacyPage() {
           <p>
             <strong className="text-white">Open Circle Markets</strong><br />
             Auckland, New Zealand<br />
-            <a href="mailto:hello@opencirclemarkets.com" className="text-gold hover:underline">
-              hello@opencirclemarkets.com
+            <a href="mailto:support@opencirclemarkets.com" className="text-gold hover:underline">
+              support@opencirclemarkets.com
             </a>
           </p>
         </Section>
