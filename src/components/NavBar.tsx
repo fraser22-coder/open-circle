@@ -49,6 +49,7 @@ const BriefIcon = () => (
 // ── Nav links config ──────────────────────────────────────────────────────────
 const NAV_LINKS = [
   { href: '/circle', label: 'Our Circle', match: '/circle' },
+  { href: '/how-it-works', label: 'How It Works', match: '/how-it-works' },
   { href: '/book', label: 'Book a Vendor', match: '/book' },
   { href: '/vendor/dashboard', label: 'My Events', match: '/vendor' },
 ]
@@ -257,7 +258,7 @@ export default function NavBar() {
         style={{ background: '#1b1f3b', borderColor: '#303e66' }}
       >
         {/* Logo */}
-        <Link href="/circle" className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-3">
           <OCMLogo />
           <div>
             <div className="text-[16px] sm:text-[18px] font-bold text-gold leading-tight">Open Circle</div>
