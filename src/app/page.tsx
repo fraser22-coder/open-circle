@@ -186,10 +186,8 @@ export default async function HomePage() {
               {vendors.map(vendor => (
                 <Link key={vendor.id} href={`/circle/${vendor.slug}`} className="block group">
                   <div
-                    className="rounded-2xl overflow-hidden border transition-all duration-200 group-hover:-translate-y-1 group-hover:shadow-2xl"
+                    className="rounded-2xl overflow-hidden border transition-all duration-200 group-hover:-translate-y-1 group-hover:shadow-2xl group-hover:border-gold"
                     style={{ background: '#303e66', borderColor: '#3c4f80' }}
-                    onMouseEnter={e => (e.currentTarget.style.borderColor = '#f9d378')}
-                    onMouseLeave={e => (e.currentTarget.style.borderColor = '#3c4f80')}
                   >
                     <div className="relative h-[200px] w-full overflow-hidden" style={{ background: '#1b1f3b' }}>
                       {vendor.photos?.[0] ? (
