@@ -16,7 +16,7 @@ async function getVendor(slug: string): Promise<Vendor | null> {
   const { data } = await supabaseAdmin
     .from('vendors')
     .select('*')
-    .eq('slug', slug)
+    .ilike('slug', slug)   // case-insensitive match — works regardless of how slug is stored
     .eq('is_active', true)
     .single()
   return data
@@ -24,7 +24,7 @@ async function getVendor(slug: string): Promise<Vendor | null> {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const vendor = await getVendor(slug)
+  const vendor = await getVendor(slug.toLowerCase())
   if (!vendor) return { title: 'Vendor Not Found' }
 
   const title = `${vendor.name} — Open Circle Markets`
@@ -83,7 +83,7 @@ function buildJsonLd(vendor: Vendor) {
 
 export default async function VendorProfilePage({ params }: Props) {
   const { slug } = await params
-  const vendor = await getVendor(slug)
+  const vendor = await getVendor(slug.toLowerCase())
   if (!vendor) notFound()
 
   const jsonLd = buildJsonLd(vendor)
