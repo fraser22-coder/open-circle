@@ -97,7 +97,7 @@ export default function VendorSignupPage() {
 
   return (
     <>
-      <NavBar />
+ 
 
       {/* Hero */}
       <div className="text-center py-14 px-10 border-b"
