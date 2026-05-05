@@ -52,7 +52,6 @@ const FAQ = ({ q, a }: { q: string; a: string }) => (
 export default function HowItWorksPage() {
   return (
     <>
-      <NavBar />
 
       {/* Hero */}
       <div className="px-6 sm:px-10 py-16 border-b text-center"
