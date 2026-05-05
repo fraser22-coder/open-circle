@@ -34,7 +34,6 @@ export default async function CirclePage({
 
   return (
     <>
-      <NavBar />
 
       {/* Hero */}
       <div
