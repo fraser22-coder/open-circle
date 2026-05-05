@@ -10,4 +10,10 @@ const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? 'placeholder
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Server-side admin client (bypasses RLS — for API routes only)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+// Uses cache: 'no-store' to prevent Next.js from caching Supabase fetch calls,
+// ensuring vendor data (photos, etc.) always reflects the latest database state.
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  global: {
+    fetch: (url, options = {}) => fetch(url, { ...options, cache: 'no-store' }),
+  },
+})
