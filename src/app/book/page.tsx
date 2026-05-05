@@ -192,7 +192,6 @@ export default function BookPage() {
 
   return (
     <>
-      <NavBar />
 
       {/* Hero */}
       <div className="text-center py-10 sm:py-16 px-5 sm:px-10 border-b"
