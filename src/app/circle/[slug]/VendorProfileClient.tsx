@@ -72,7 +72,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
 
   return (
     <>
-      <NavBar />
 
       {/* Lightbox */}
       {lightbox && photos.length > 0 && (
