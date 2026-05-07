@@ -20,6 +20,7 @@ export interface Vendor {
   user_id: string | null  // linked vendor login
   instagram: string | null
   website: string | null
+  menu_urls?: string[] | null
 }
 
 export interface Enquiry {
