@@ -14,7 +14,12 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
   const [slide, setSlide] = useState(0)
   const [lightbox, setLightbox] = useState(false)
   const [lightboxSlide, setLightboxSlide] = useState(0)
+  const [menuLightbox, setMenuLightbox] = useState(false)
+  const [menuPage, setMenuPage] = useState(0)
   const [inBrief, setInBrief] = useState(false)
+
+  const menuUrls = ((vendor as any).menu_urls as string[] | null | undefined) ?? []
+  const hasMenu = menuUrls.length > 0
 
   // Check if vendor is in brief
   useEffect(() => {
@@ -31,27 +36,36 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
     return () => clearInterval(t)
   }, [vendor, lightbox])
 
-  // Keyboard nav for lightbox
+  // Keyboard nav
   const handleKey = useCallback((e: KeyboardEvent) => {
+    if (menuLightbox) {
+      if (e.key === 'Escape') setMenuLightbox(false)
+      if (e.key === 'ArrowRight' && menuUrls.length > 1)
+        setMenuPage(p => (p + 1) % menuUrls.length)
+      if (e.key === 'ArrowLeft' && menuUrls.length > 1)
+        setMenuPage(p => (p - 1 + menuUrls.length) % menuUrls.length)
+      return
+    }
     if (!lightbox) return
     if (e.key === 'Escape') setLightbox(false)
     if (e.key === 'ArrowRight') setLightboxSlide(s => (s + 1) % (vendor?.photos?.length || 1))
     if (e.key === 'ArrowLeft') setLightboxSlide(s => (s - 1 + (vendor?.photos?.length || 1)) % (vendor?.photos?.length || 1))
-  }, [lightbox, vendor])
+  }, [lightbox, menuLightbox, vendor, menuUrls])
 
   useEffect(() => {
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
   }, [handleKey])
 
-  // Prevent scroll when lightbox open
+  // Prevent scroll when any lightbox open
   useEffect(() => {
-    if (lightbox) document.body.style.overflow = 'hidden'
+    if (lightbox || menuLightbox) document.body.style.overflow = 'hidden'
     else document.body.style.overflow = ''
     return () => { document.body.style.overflow = '' }
-  }, [lightbox])
+  }, [lightbox, menuLightbox])
 
   const openLightbox = (i: number) => { setLightboxSlide(i); setLightbox(true) }
+  const openMenu = () => { setMenuPage(0); setMenuLightbox(true) }
 
   const toggleBrief = () => {
     try {
@@ -73,7 +87,78 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
   return (
     <>
 
-      {/* Lightbox */}
+      {/* ── Menu lightbox ───────────────────────────────────── */}
+      {menuLightbox && hasMenu && (
+        <div
+          className="fixed inset-0 z-[110] flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.95)' }}
+          onClick={() => setMenuLightbox(false)}
+        >
+          <div
+            className="relative w-full h-full flex items-center justify-center p-4"
+            onClick={e => e.stopPropagation()}
+          >
+            <Image
+              src={menuUrls[menuPage]}
+              alt={`${vendor.name} menu${menuUrls.length > 1 ? ` page ${menuPage + 1}` : ''}`}
+              fill
+              className="object-contain"
+              sizes="100vw"
+            />
+
+            {/* Close */}
+            <button
+              onClick={() => setMenuLightbox(false)}
+              className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-white text-xl z-10 hover:bg-white/20 transition-colors"
+              style={{ background: 'rgba(0,0,0,0.6)' }}
+              aria-label="Close menu"
+            >✕</button>
+
+            {/* Prev / Next — only if multiple pages */}
+            {menuUrls.length > 1 && (
+              <>
+                <button
+                  onClick={() => setMenuPage(p => (p - 1 + menuUrls.length) % menuUrls.length)}
+                  className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center text-gold text-2xl z-10 hover:bg-white/10 transition-colors"
+                  style={{ background: 'rgba(0,0,0,0.55)' }}
+                  aria-label="Previous menu page"
+                >‹</button>
+                <button
+                  onClick={() => setMenuPage(p => (p + 1) % menuUrls.length)}
+                  className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full flex items-center justify-center text-gold text-2xl z-10 hover:bg-white/10 transition-colors"
+                  style={{ background: 'rgba(0,0,0,0.55)' }}
+                  aria-label="Next menu page"
+                >›</button>
+
+                {/* Page dots */}
+                <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                  {menuUrls.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setMenuPage(i)}
+                      className="h-2 rounded-full transition-all"
+                      style={{ width: i === menuPage ? 22 : 8, background: i === menuPage ? '#f9d378' : 'rgba(255,255,255,0.35)' }}
+                      aria-label={`Menu page ${i + 1}`}
+                    />
+                  ))}
+                </div>
+
+                <p className="absolute bottom-12 left-1/2 -translate-x-1/2 text-[11px] text-white/30 hidden sm:block">
+                  ESC to close · ← → to navigate pages
+                </p>
+              </>
+            )}
+
+            {menuUrls.length === 1 && (
+              <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[11px] text-white/30 hidden sm:block">
+                ESC to close · Click outside to dismiss
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Photo lightbox ──────────────────────────────────── */}
       {lightbox && photos.length > 0 && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center"
@@ -88,7 +173,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
               className="object-contain"
               sizes="100vw"
             />
-            {/* Close */}
             <button
               onClick={() => setLightbox(false)}
               className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-white text-xl z-10 hover:bg-white/20 transition-colors"
@@ -96,7 +180,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
               aria-label="Close lightbox"
             >✕</button>
 
-            {/* Prev / Next */}
             {photos.length > 1 && (
               <>
                 <button
@@ -111,14 +194,10 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
                   style={{ background: 'rgba(0,0,0,0.55)' }}
                   aria-label="Next photo"
                 >›</button>
-
-                {/* Counter */}
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[12px] text-white/70 z-10"
                   style={{ background: 'rgba(0,0,0,0.5)' }}>
                   {lightboxSlide + 1} / {photos.length}
                 </div>
-
-                {/* Dots */}
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
                   {photos.map((_, i) => (
                     <button
@@ -162,8 +241,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
                   <Image src={url} alt={`${vendor.name} photo ${i + 1}`} fill className="object-cover" sizes="(max-width: 1000px) 100vw, 1000px" />
                 </div>
               ))}
-
-              {/* Arrows */}
               {photos.length > 1 && (
                 <>
                   <button
@@ -178,7 +255,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
                     style={{ background: 'rgba(27,31,59,0.8)', border: '1px solid #3c4f80' }}
                     aria-label="Next"
                   >›</button>
-                  {/* Dots */}
                   <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10">
                     {photos.map((_, i) => (
                       <button
@@ -190,7 +266,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
                       />
                     ))}
                   </div>
-                  {/* Enlarge hint */}
                   <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-semibold z-10"
                     style={{ background: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.7)' }}>
                     ⛶ Tap to enlarge
@@ -209,7 +284,7 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
           )}
         </div>
 
-        {/* Thumbnail strip — only if 2+ photos */}
+        {/* Thumbnail strip */}
         {photos.length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
             {photos.map((url, i) => (
@@ -218,8 +293,7 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
                 onClick={() => openLightbox(i)}
                 className="flex-shrink-0 relative rounded-lg overflow-hidden transition-all"
                 style={{
-                  width: 72,
-                  height: 54,
+                  width: 72, height: 54,
                   border: `2px solid ${i === slide ? '#f9d378' : 'transparent'}`,
                   opacity: i === slide ? 1 : 0.6,
                 }}
@@ -237,7 +311,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
           {/* Main */}
           <div>
             <div className="flex items-start gap-4 mb-6">
-              {/* Logo */}
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0 border"
                 style={{ background: '#2a1000', borderColor: '#3c4f80' }}>
                 {vendor.logo_url
@@ -265,7 +338,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
               {vendor.description}
             </p>
 
-            {/* Details grid */}
             <p className="text-[11px] font-bold uppercase tracking-[2px] mb-3.5" style={{ color: '#baa182' }}>
               Vendor Details
             </p>
@@ -285,7 +357,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
               ))}
             </div>
 
-            {/* Suitable for */}
             {vendor.suitable_for?.length > 0 && (
               <>
                 <p className="text-[11px] font-bold uppercase tracking-[2px] mb-3" style={{ color: '#baa182' }}>Suitable For</p>
@@ -309,6 +380,7 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
               <p className="text-[13px] font-light leading-relaxed mb-5" style={{ color: '#c5b098' }}>
                 Submit your event details and {vendor.name} will come back with availability and a quote if required.
               </p>
+
               <Link
                 href={`/book?vendor=${vendor.slug}`}
                 className="block w-full text-center py-3.5 rounded-full text-[15px] font-bold mb-3 transition-opacity hover:opacity-90"
@@ -316,6 +388,18 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
               >
                 Request This Vendor
               </Link>
+
+              {/* View Menu — hidden if no menu_urls */}
+              {hasMenu && (
+                <button
+                  onClick={openMenu}
+                  className="block w-full text-center py-3 rounded-full text-[13px] font-semibold mb-3 transition-all border hover:bg-white/5"
+                  style={{ border: '1.5px solid #f9d378', color: '#f9d378' }}
+                >
+                  🍽️ View Menu{menuUrls.length > 1 ? ` (${menuUrls.length} pages)` : ''}
+                </button>
+              )}
+
               <button
                 onClick={toggleBrief}
                 className="block w-full text-center py-3 rounded-full text-[13px] font-semibold transition-all border"
