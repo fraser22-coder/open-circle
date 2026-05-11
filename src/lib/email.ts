@@ -1,7 +1,7 @@
 import { Resend } from 'resend'
 import { Enquiry, Vendor } from './types'
 
-const FROM = 'Open Circle Markets <noreply@opencirclemarkets.com>'
+const FROM = 'Open Circle Markets <onboarding@resend.dev>'
 const ADMIN_EMAIL = 'opencirclemarkets@gmail.com'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://opencirclemarkets.com'
 
