@@ -2,7 +2,8 @@ import { Resend } from 'resend'
 import { Enquiry, Vendor } from './types'
 import { getVendorAgreementHtml } from './contractTemplate'
 
-const FROM = 'Open Circle Markets <noreply@opencirclemarkets.com>'
+// TODO: switch back to 'Open Circle Markets <noreply@opencirclemarkets.com>' once domain is verified in Resend
+const FROM = 'Open Circle Markets <onboarding@resend.dev>'
 const ADMIN_EMAIL = 'opencirclemarkets@gmail.com'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://opencirclemarkets.com'
 const LOGO_URL = 'https://uavytnztojbjerlopaiz.supabase.co/storage/v1/object/public/vendor-photos/Opencirclelogo-1.png'
