@@ -9,12 +9,6 @@ const CATEGORIES = [
   { value: 'entertainment', label: '🎭 Entertainment' },
 ]
 
-const PRICE_RANGES = [
-  { value: 'budget', label: '$ Budget', desc: 'Under $15' },
-  { value: 'mid', label: '$$ Mid-range', desc: '$15–$30' },
-  { value: 'premium', label: '$$$ Premium', desc: '$30+' },
-]
-
 const SPACE_OPTIONS = [
   { value: '2x2', label: 'Small', desc: '2m × 2m' },
   { value: '3x3', label: 'Medium', desc: '3m × 3m' },
@@ -277,23 +271,13 @@ export default function ApplyPage() {
           {/* Price Range */}
           <div>
             <label style={labelStyle}>Price Range *</label>
-            <p className="text-[12px] mb-3" style={{ color: '#6b7db3' }}>
-              What&apos;s the typical spend per person at your stall?
-            </p>
-            <div className="grid grid-cols-3 gap-3">
-              {PRICE_RANGES.map(p => (
-                <button
-                  key={p.value}
-                  type="button"
-                  onClick={() => set('price_range', p.value)}
-                  style={selectorBtnStyle(form.price_range === p.value)}
-                >
-                  <div className="font-bold text-[13px]">{p.label}</div>
-                  <div className="text-[11px] mt-0.5 opacity-75">{p.desc}</div>
-                </button>
-              ))}
-            </div>
-            <input required type="text" value={form.price_range} onChange={() => {}} style={{ display: 'none' }} />
+            <input
+              required
+              style={inputStyle}
+              placeholder="e.g. $10–$20 per item, most things under $15"
+              value={form.price_range}
+              onChange={e => set('price_range', e.target.value)}
+            />
           </div>
 
           {/* Space Required */}
@@ -371,7 +355,6 @@ export default function ApplyPage() {
               >
                 {photos.logo ? (
                   <>
-                    {/* Preview */}
                     <img
                       src={URL.createObjectURL(photos.logo)}
                       alt="Logo preview"
@@ -416,7 +399,6 @@ export default function ApplyPage() {
                 <span className="font-normal ml-2" style={{ color: '#6b7db3' }}>(at least 1, up to 6)</span>
               </p>
 
-              {/* Previews */}
               {photos.foodPhotos.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3">
                   {photos.foodPhotos.map((file, i) => (
@@ -453,7 +435,6 @@ export default function ApplyPage() {
                 </div>
               )}
 
-              {/* Drop zone — hide when at limit */}
               {photos.foodPhotos.length < 6 && (
                 <div
                   onDragOver={e => { e.preventDefault(); setFoodDragging(true) }}
