@@ -10,6 +10,7 @@ export default function AdminDashboard() {
   const [enquiries, setEnquiries] = useState<Enquiry[]>([])
   const [vendors, setVendors] = useState<Vendor[]>([])
   const [applications, setApplications] = useState<any[]>([])
+  const [pendingProfiles, setPendingProfiles] = useState<number>(0)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -18,10 +19,12 @@ export default function AdminDashboard() {
       fetch('/api/enquiries').then(r => r.json()),
       fetch('/api/vendors').then(r => r.json()),
       fetch('/api/vendor-applications').then(r => r.json()),
-    ]).then(([eq, vd, apps]) => {
+      fetch('/api/admin/vendors').then(r => r.ok ? r.json() : []),
+    ]).then(([eq, vd, apps, profiles]) => {
       setEnquiries(Array.isArray(eq) ? eq : [])
       setVendors(Array.isArray(vd) ? vd : [])
       setApplications(Array.isArray(apps) ? apps : [])
+      setPendingProfiles(Array.isArray(profiles) ? profiles.length : 0)
       setLoading(false)
     })
   }, [])
@@ -105,6 +108,28 @@ export default function AdminDashboard() {
             </div>
           ))}
         </div>
+
+        {/* Review Profiles banner — shown when there are pending profiles */}
+        {pendingProfiles > 0 && (
+          <button
+            onClick={() => router.push('/admin/review')}
+            className="w-full mb-6 rounded-2xl p-5 border text-left flex items-center justify-between gap-4 transition-opacity hover:opacity-90"
+            style={{ background: '#2a3356', borderColor: '#f9d378' }}
+          >
+            <div>
+              <p className="text-[13px] font-black" style={{ color: '#f9d378' }}>
+                ⭕ {pendingProfiles} vendor profile{pendingProfiles !== 1 ? 's' : ''} ready for review
+              </p>
+              <p className="text-[12px] mt-1" style={{ color: '#baa182' }}>
+                Claude has generated draft profiles from new applications — approve or deny to go live.
+              </p>
+            </div>
+            <span className="flex-shrink-0 text-[13px] font-bold px-5 py-2 rounded-full"
+              style={{ background: '#f9d378', color: '#1b1f3b' }}>
+              Review →
+            </span>
+          </button>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6 flex-wrap">
