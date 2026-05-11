@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { sendApplicationConfirmation } from '@/lib/email'
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function slugify(name: string): string {
   return name
@@ -53,19 +54,15 @@ Return ONLY valid JSON. No markdown, no explanation, just the JSON object.`
   })
 
   if (!res.ok) throw new Error('Claude API call failed')
-
   const data = await res.json()
   const text = data.content?.[0]?.text ?? ''
-
-  // Strip any accidental markdown fences
   const cleaned = text.replace(/```json|```/g, '').trim()
   return JSON.parse(cleaned)
 }
 
-// ── Route handler ────────────────────────────────────────────────────────────
+// ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  // Parse FormData
   let formData: FormData
   try {
     formData = await req.formData()
@@ -85,7 +82,6 @@ export async function POST(req: NextRequest) {
   const logo          = formData.get('logo')          as File | null
   const foodPhotos    = formData.getAll('food_photos') as File[]
 
-  // Validate
   if (!business_name || !contact_name || !email || !phone || !category ||
       !description || !location || !price_range || !space) {
     return NextResponse.json({ error: 'Please fill in all required fields.' }, { status: 400 })
@@ -97,7 +93,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Please upload at least one food or product photo.' }, { status: 400 })
   }
 
-  // ── Upload photos to Supabase Storage ──────────────────────────────────────
+  // ── Upload photos ─────────────────────────────────────────────────────────
   const safeEmail = email.trim().toLowerCase().replace(/[^a-z0-9]/g, '-')
   const folder    = `${safeEmail}-${Date.now()}`
   const BUCKET    = 'vendor-applications'
@@ -125,20 +121,16 @@ export async function POST(req: NextRequest) {
     const photoExt    = photo.name.split('.').pop()?.toLowerCase() || 'jpg'
     const photoPath   = `${folder}/food-${i + 1}.${photoExt}`
     const photoBuffer = Buffer.from(await photo.arrayBuffer())
-
     const { error: photoError } = await supabaseAdmin.storage
       .from(BUCKET)
       .upload(photoPath, photoBuffer, { contentType: photo.type, upsert: false })
-
     if (!photoError) {
-      const { data: { publicUrl } } = supabaseAdmin.storage
-        .from(BUCKET)
-        .getPublicUrl(photoPath)
+      const { data: { publicUrl } } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(photoPath)
       foodPhotoUrls.push(publicUrl)
     }
   }
 
-  // ── Save application to vendor_applications ────────────────────────────────
+  // ── Save application ──────────────────────────────────────────────────────
   const { data: application, error: appError } = await supabaseAdmin
     .from('vendor_applications')
     .insert({
@@ -163,21 +155,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to submit application. Please try again.' }, { status: 500 })
   }
 
-  // ── Generate draft vendor profile with Claude ──────────────────────────────
-  let profile: { name: string; description: string; tagline: string; price_range: string }
+  // ── Send confirmation email to applicant ──────────────────────────────────
+  await sendApplicationConfirmation({
+    email:         email.trim().toLowerCase(),
+    business_name: business_name.trim(),
+    contact_name:  contact_name.trim(),
+  }).catch(err => console.error('Confirmation email failed:', err))
 
+  // ── Generate draft profile with Claude ────────────────────────────────────
+  let profile: { name: string; description: string; tagline: string; price_range: string }
   try {
     profile = await generateVendorProfile({
       business_name: business_name.trim(),
       category,
-      location: location.trim(),
-      price_range: price_range.trim(),
+      location:      location.trim(),
+      price_range:   price_range.trim(),
       space,
-      description: description.trim(),
+      description:   description.trim(),
     })
   } catch (err) {
-    // Profile generation failed — still return success to vendor,
-    // but log it so Fraser knows to manually review
     console.error('Claude profile generation failed:', err)
     return NextResponse.json({ success: true })
   }
@@ -205,7 +201,6 @@ export async function POST(req: NextRequest) {
 
   if (vendorError) {
     console.error('Vendor draft insert error:', vendorError)
-    // Non-fatal — application is saved, profile can be created manually
   }
 
   return NextResponse.json({ success: true })
