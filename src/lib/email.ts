@@ -3,97 +3,262 @@ import { Enquiry, Vendor } from './types'
 
 const FROM = 'Open Circle Markets <noreply@opencirclemarkets.com>'
 const ADMIN_EMAIL = 'opencirclemarkets@gmail.com'
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://opencirclemarkets.com'
 
-// Email to customer confirming their enquiry was received
+// ── Shared helpers ────────────────────────────────────────────────────────────
+
+function getResend() {
+  return new Resend(process.env.RESEND_API_KEY!)
+}
+
+function emailWrapper(content: string) {
+  return `
+    <div style="font-family:Arial,sans-serif;background:#1b1f3b;color:#fff;padding:40px;border-radius:12px;max-width:600px;margin:0 auto">
+      <div style="text-align:center;margin-bottom:32px">
+        <div style="display:inline-block;width:60px;height:60px;border-radius:50%;border:3px solid #f9d378;line-height:54px;font-size:24px;margin-bottom:12px">⭕</div>
+        <p style="color:#baa182;font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0">Open Circle Markets</p>
+      </div>
+      ${content}
+      <hr style="border:none;border-top:1px solid #303e66;margin:32px 0" />
+      <p style="color:#6b7db3;font-size:11px;text-align:center;margin:0">
+        Open Circle Markets · Auckland, New Zealand<br />
+        <a href="mailto:${ADMIN_EMAIL}" style="color:#baa182">${ADMIN_EMAIL}</a>
+      </p>
+    </div>
+  `
+}
+
+function goldButton(href: string, label: string) {
+  return `<a href="${href}" style="display:inline-block;background:#f9d378;color:#1b1f3b;padding:13px 30px;border-radius:50px;text-decoration:none;font-weight:700;font-size:14px;margin-top:20px">${label}</a>`
+}
+
+function infoTable(rows: [string, string][]) {
+  return `
+    <div style="background:#303e66;border-radius:10px;padding:20px;margin:20px 0">
+      <table style="width:100%;border-collapse:collapse">
+        ${rows.map(([label, value]) => `
+          <tr>
+            <td style="color:#baa182;padding:6px 0;font-size:13px;vertical-align:top">${label}</td>
+            <td style="color:#fff;font-size:13px;text-align:right;padding:6px 0">${value}</td>
+          </tr>
+        `).join('')}
+      </table>
+    </div>
+  `
+}
+
+// ── Enquiry emails ────────────────────────────────────────────────────────────
+
+/** Confirmation to customer after they submit an enquiry */
 export async function sendEnquiryConfirmation(enquiry: Enquiry) {
-  const resend = new Resend(process.env.RESEND_API_KEY!)
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: enquiry.email,
     subject: "You're in the Circle — Enquiry Received",
-    html: `
-      <div style="font-family:Arial,sans-serif;background:#1b1f3b;color:#fff;padding:40px;border-radius:12px;max-width:600px;margin:0 auto">
-        <div style="text-align:center;margin-bottom:32px">
-          <div style="display:inline-block;width:60px;height:60px;border-radius:50%;border:3px solid #f9d378;line-height:54px;font-size:24px;margin-bottom:12px">⭕</div>
-          <h1 style="color:#f9d378;font-size:28px;margin:0">You're in the Circle!</h1>
-        </div>
-        <p style="color:#c5b098;line-height:1.7">Hi ${enquiry.first_name},</p>
-        <p style="color:#c5b098;line-height:1.7">
-          Your event enquiry has been received and passed on to our vendors.
-          Expect to hear back with availability and quotes within <strong style="color:#f9d378">48 hours</strong>.
-        </p>
-        <div style="background:#303e66;border-radius:10px;padding:20px;margin:24px 0">
-          <p style="color:#baa182;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:0 0 12px">Your Enquiry Summary</p>
-          <table style="width:100%;border-collapse:collapse">
-            <tr><td style="color:#baa182;padding:6px 0;font-size:13px">Occasion</td><td style="color:#fff;font-size:13px;text-align:right">${enquiry.occasion}</td></tr>
-            <tr><td style="color:#baa182;padding:6px 0;font-size:13px">Date</td><td style="color:#fff;font-size:13px;text-align:right">${enquiry.event_date}</td></tr>
-            <tr><td style="color:#baa182;padding:6px 0;font-size:13px">Location</td><td style="color:#fff;font-size:13px;text-align:right">${enquiry.event_location}</td></tr>
-            <tr><td style="color:#baa182;padding:6px 0;font-size:13px">Guests</td><td style="color:#fff;font-size:13px;text-align:right">${enquiry.guest_count}</td></tr>
-          </table>
-        </div>
-        <p style="color:#c5b098;font-size:12px;margin-top:32px">— Open Circle Markets</p>
-      </div>
-    `
+    html: emailWrapper(`
+      <h1 style="color:#f9d378;font-size:26px;margin:0 0 16px">You're in the Circle!</h1>
+      <p style="color:#c5b098;line-height:1.7">Hi ${enquiry.first_name},</p>
+      <p style="color:#c5b098;line-height:1.7">
+        Your event enquiry has been received and passed on to our vendors.
+        Expect to hear back with availability and quotes within <strong style="color:#f9d378">48 hours</strong>.
+      </p>
+      ${infoTable([
+        ['Occasion', enquiry.occasion],
+        ['Date', enquiry.event_date],
+        ['Location', enquiry.event_location],
+        ['Guests', String(enquiry.guest_count)],
+      ])}
+      <p style="color:#c5b098;line-height:1.7;font-size:13px">
+        In the meantime, feel free to browse our full vendor circle below.
+      </p>
+      ${goldButton(`${SITE_URL}/circle`, 'Browse the Circle →')}
+    `)
   })
 }
 
-// Email to admin about new enquiry
+/** Alert to Fraser when a new enquiry comes in */
 export async function sendAdminAlert(enquiry: Enquiry) {
-  const resend = new Resend(process.env.RESEND_API_KEY!)
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: ADMIN_EMAIL,
     subject: `New Circle Enquiry — ${enquiry.occasion} | ${enquiry.event_location}`,
-    html: `
-      <div style="font-family:Arial,sans-serif;background:#1b1f3b;color:#fff;padding:40px;border-radius:12px;max-width:600px;margin:0 auto">
-        <h2 style="color:#f9d378">New Enquiry Received</h2>
-        <div style="background:#303e66;border-radius:10px;padding:20px">
-          <p><strong style="color:#baa182">Name:</strong> ${enquiry.first_name} ${enquiry.last_name}</p>
-          <p><strong style="color:#baa182">Email:</strong> ${enquiry.email}</p>
-          <p><strong style="color:#baa182">Phone:</strong> ${enquiry.phone || 'Not provided'}</p>
-          <p><strong style="color:#baa182">Occasion:</strong> ${enquiry.occasion}</p>
-          <p><strong style="color:#baa182">Date:</strong> ${enquiry.event_date}</p>
-          <p><strong style="color:#baa182">Location:</strong> ${enquiry.event_location}</p>
-          <p><strong style="color:#baa182">Guests:</strong> ${enquiry.guest_count}</p>
-          <p><strong style="color:#baa182">Vendor Types:</strong> ${enquiry.vendor_types.join(', ')}</p>
-          <p><strong style="color:#baa182">Event Type:</strong> ${enquiry.event_type}</p>
-          ${enquiry.budget ? `<p><strong style="color:#baa182">Budget:</strong> $${enquiry.budget.toLocaleString()}</p>` : ''}
-          <p><strong style="color:#baa182">Notes:</strong> ${enquiry.vendor_notes || 'None'}</p>
-          ${enquiry.brief_vendors?.length
-            ? `<p><strong style="color:#f9d378">⭐ Shortlisted Vendors:</strong> ${enquiry.brief_vendors.map(v => v.name).join(', ')}</p>`
-            : ''}
-        </div>
-        <a href="${process.env.NEXT_PUBLIC_SITE_URL}/admin" style="display:inline-block;margin-top:20px;background:#f9d378;color:#1b1f3b;padding:12px 28px;border-radius:50px;text-decoration:none;font-weight:700">View in Admin Panel</a>
+    html: emailWrapper(`
+      <h2 style="color:#f9d378;margin:0 0 16px">New Enquiry Received</h2>
+      <div style="background:#303e66;border-radius:10px;padding:20px">
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Name:</strong> ${enquiry.first_name} ${enquiry.last_name}</p>
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Email:</strong> ${enquiry.email}</p>
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Phone:</strong> ${enquiry.phone || 'Not provided'}</p>
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Occasion:</strong> ${enquiry.occasion}</p>
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Date:</strong> ${enquiry.event_date}</p>
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Location:</strong> ${enquiry.event_location}</p>
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Guests:</strong> ${enquiry.guest_count}</p>
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Vendor Types:</strong> ${enquiry.vendor_types.join(', ')}</p>
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Event Type:</strong> ${enquiry.event_type}</p>
+        ${enquiry.budget ? `<p style="margin:0 0 8px"><strong style="color:#baa182">Budget:</strong> $${enquiry.budget.toLocaleString()}</p>` : ''}
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Notes:</strong> ${enquiry.vendor_notes || 'None'}</p>
+        ${enquiry.brief_vendors?.length
+          ? `<p style="margin:8px 0 0;color:#f9d378">⭐ Shortlisted: ${enquiry.brief_vendors.map(v => v.name).join(', ')}</p>`
+          : ''}
       </div>
-    `
+      ${goldButton(`${SITE_URL}/admin`, 'View in Admin Panel →')}
+    `)
   })
 }
 
-// Email to vendor about a new matched opportunity
+/** Opportunity alert to a vendor about a new matched enquiry */
 export async function sendVendorOpportunity(vendor: Vendor, enquiry: Enquiry) {
-  const resend = new Resend(process.env.RESEND_API_KEY!)
-  await resend.emails.send({
+  const recipientEmail = vendor.email || ADMIN_EMAIL
+  const isShortlisted = enquiry.brief_vendors?.some(v => v.slug === vendor.slug)
+
+  await getResend().emails.send({
     from: FROM,
-    to: vendor.user_id || ADMIN_EMAIL, // fall back to admin if no email on record
+    to: recipientEmail,
     subject: `New Event Opportunity — ${enquiry.occasion} on ${enquiry.event_date}`,
-    html: `
-      <div style="font-family:Arial,sans-serif;background:#1b1f3b;color:#fff;padding:40px;border-radius:12px;max-width:600px;margin:0 auto">
-        <h2 style="color:#f9d378">You've got a new opportunity!</h2>
-        <p style="color:#c5b098">Hi ${vendor.name}, a new event brief has come in that matches your vendor profile.</p>
-        ${enquiry.brief_vendors?.some(v => v.slug === vendor.slug)
-          ? `<p style="background:#1d4731;color:#b7e4c7;padding:10px 16px;border-radius:8px;font-size:13px">⭐ <strong>You were specifically shortlisted by this customer.</strong></p>`
-          : ''}
-        <div style="background:#303e66;border-radius:10px;padding:20px;margin:20px 0">
-          <p><strong style="color:#baa182">Occasion:</strong> ${enquiry.occasion}</p>
-          <p><strong style="color:#baa182">Date:</strong> ${enquiry.event_date}</p>
-          <p><strong style="color:#baa182">Location:</strong> ${enquiry.event_location}</p>
-          <p><strong style="color:#baa182">Guests:</strong> ${enquiry.guest_count}</p>
-          <p><strong style="color:#baa182">Venue:</strong> ${enquiry.venue_type}</p>
-          ${enquiry.budget ? `<p><strong style="color:#baa182">Budget:</strong> $${enquiry.budget.toLocaleString()}</p>` : ''}
-          <p><strong style="color:#baa182">Notes:</strong> ${enquiry.event_notes || 'None'}</p>
-        </div>
-        <a href="${process.env.NEXT_PUBLIC_SITE_URL}/vendor/dashboard" style="display:inline-block;background:#f9d378;color:#1b1f3b;padding:12px 28px;border-radius:50px;text-decoration:none;font-weight:700">Respond in My Dashboard</a>
+    html: emailWrapper(`
+      <h2 style="color:#f9d378;margin:0 0 16px">You've got a new opportunity!</h2>
+      <p style="color:#c5b098;line-height:1.7">
+        Hi ${vendor.name}, a new event brief has come in that matches your profile.
+      </p>
+      ${isShortlisted
+        ? `<div style="background:#1d4731;border-radius:8px;padding:12px 16px;margin:16px 0">
+             <p style="color:#b7e4c7;margin:0;font-size:13px">⭐ <strong>You were specifically shortlisted by this customer.</strong></p>
+           </div>`
+        : ''}
+      ${infoTable([
+        ['Occasion', enquiry.occasion],
+        ['Date', enquiry.event_date],
+        ['Location', enquiry.event_location],
+        ['Guests', String(enquiry.guest_count)],
+        ['Venue', enquiry.venue_type ?? '—'],
+        ...(enquiry.budget ? [['Budget', `$${enquiry.budget.toLocaleString()}`] as [string, string]] : []),
+      ])}
+      ${enquiry.event_notes
+        ? `<p style="color:#c5b098;font-size:13px;background:#252d4a;padding:12px 16px;border-radius:8px;border-left:3px solid #f9d378">
+             <strong style="color:#baa182">Notes from organiser:</strong><br />${enquiry.event_notes}
+           </p>`
+        : ''}
+      <p style="color:#c5b098;line-height:1.7;font-size:13px">
+        To express your interest or get more details, reply directly to this email or contact Fraser at
+        <a href="mailto:${ADMIN_EMAIL}" style="color:#f9d378">${ADMIN_EMAIL}</a>.
+      </p>
+    `)
+  })
+}
+
+// ── Vendor application emails ─────────────────────────────────────────────────
+
+/** Confirmation to applicant immediately after they submit */
+export async function sendApplicationConfirmation(data: {
+  email: string
+  business_name: string
+  contact_name: string
+}) {
+  await getResend().emails.send({
+    from: FROM,
+    to: data.email,
+    subject: `Application Received — ${data.business_name}`,
+    html: emailWrapper(`
+      <h1 style="color:#f9d378;font-size:26px;margin:0 0 16px">Application Received!</h1>
+      <p style="color:#c5b098;line-height:1.7">Hi ${data.contact_name},</p>
+      <p style="color:#c5b098;line-height:1.7">
+        Thanks for applying to join the Circle — we've received your application for
+        <strong style="color:#fff">${data.business_name}</strong> and we're excited to take a look.
+      </p>
+      <p style="color:#c5b098;line-height:1.7">
+        We personally review every application and will be in touch within
+        <strong style="color:#f9d378">3–5 business days</strong>.
+      </p>
+      <div style="background:#252d4a;border-radius:10px;padding:16px 20px;margin:20px 0;border-left:3px solid #f9d378">
+        <p style="color:#baa182;font-size:13px;margin:0 0 6px;text-transform:uppercase;letter-spacing:1px">What happens next</p>
+        <p style="color:#c5b098;font-size:13px;margin:0;line-height:1.7">
+          Our team will review your profile, photos, and offering. If your application is successful,
+          we'll generate your vendor profile and send it to you for review before it goes live on the Circle.
+        </p>
       </div>
-    `
+      <p style="color:#c5b098;line-height:1.7;font-size:13px">
+        Questions? Reach us at <a href="mailto:${ADMIN_EMAIL}" style="color:#f9d378">${ADMIN_EMAIL}</a>
+      </p>
+      ${goldButton(`${SITE_URL}/circle`, 'Browse the Circle →')}
+    `)
+  })
+}
+
+/** Sent to applicant when Fraser approves their profile */
+export async function sendApplicationApproved(data: {
+  email: string
+  business_name: string
+  contact_name: string
+  slug: string
+}) {
+  const profileUrl = `${SITE_URL}/circle/${data.slug}`
+
+  await getResend().emails.send({
+    from: FROM,
+    to: data.email,
+    subject: `Welcome to the Circle, ${data.business_name}! 🎉`,
+    html: emailWrapper(`
+      <h1 style="color:#f9d378;font-size:26px;margin:0 0 16px">Welcome to the Circle!</h1>
+      <p style="color:#c5b098;line-height:1.7">Hi ${data.contact_name},</p>
+      <p style="color:#c5b098;line-height:1.7">
+        Great news — <strong style="color:#fff">${data.business_name}</strong> has been approved
+        and your profile is now <strong style="color:#f9d378">live on the Circle</strong>. 🎉
+      </p>
+      <div style="background:#1d4731;border-radius:10px;padding:16px 20px;margin:20px 0">
+        <p style="color:#b7e4c7;font-size:13px;margin:0;line-height:1.7">
+          ✓ Your profile is live and visible to event organisers across Auckland.
+        </p>
+      </div>
+      <div style="background:#252d4a;border-radius:10px;padding:16px 20px;margin:20px 0;border-left:3px solid #f9d378">
+        <p style="color:#baa182;font-size:13px;margin:0 0 8px;text-transform:uppercase;letter-spacing:1px">What happens next</p>
+        <p style="color:#c5b098;font-size:13px;margin:0;line-height:1.7">
+          When an event organiser submits an enquiry that matches your category, you'll receive
+          an email notification with the event details. Reply to express your interest and we'll
+          take it from there.<br /><br />
+          Please ensure you've read and signed your <strong style="color:#fff">Vendor Agreement</strong>
+          — if you haven't received it yet, reply to this email and we'll send it through.
+        </p>
+      </div>
+      <p style="color:#c5b098;line-height:1.7;font-size:13px">
+        Any questions? Get in touch at <a href="mailto:${ADMIN_EMAIL}" style="color:#f9d378">${ADMIN_EMAIL}</a>
+      </p>
+      ${goldButton(profileUrl, 'View Your Profile →')}
+    `)
+  })
+}
+
+/** Sent to applicant when Fraser denies their application */
+export async function sendApplicationDenied(data: {
+  email: string
+  business_name: string
+  contact_name: string
+}) {
+  await getResend().emails.send({
+    from: FROM,
+    to: data.email,
+    subject: `Your Open Circle Markets Application — ${data.business_name}`,
+    html: emailWrapper(`
+      <h1 style="color:#f9d378;font-size:26px;margin:0 0 16px">Thanks for Applying</h1>
+      <p style="color:#c5b098;line-height:1.7">Hi ${data.contact_name},</p>
+      <p style="color:#c5b098;line-height:1.7">
+        Thank you for your interest in joining the Circle and for taking the time to apply on behalf of
+        <strong style="color:#fff">${data.business_name}</strong>.
+      </p>
+      <p style="color:#c5b098;line-height:1.7">
+        After careful review, we've decided not to move forward with your application at this stage.
+        Our network is carefully curated to ensure every event we work on is the right fit for everyone
+        involved — this decision doesn't reflect on the quality of your offering.
+      </p>
+      <div style="background:#252d4a;border-radius:10px;padding:16px 20px;margin:20px 0;border-left:3px solid #3c4f80">
+        <p style="color:#c5b098;font-size:13px;margin:0;line-height:1.7">
+          You're welcome to reapply in the future as our network grows and new opportunities arise.
+          If you'd like more specific feedback, feel free to reply to this email and we'll do our best
+          to help.
+        </p>
+      </div>
+      <p style="color:#c5b098;line-height:1.7;font-size:13px">
+        We wish you all the best with your business — thank you again for your interest in Open Circle Markets.
+      </p>
+      <p style="color:#c5b098;line-height:1.7;font-size:13px">— Fraser &amp; the OCM Team</p>
+    `)
   })
 }
