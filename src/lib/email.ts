@@ -1,9 +1,11 @@
 import { Resend } from 'resend'
 import { Enquiry, Vendor } from './types'
+import { getVendorAgreementHtml } from './contractTemplate'
 
-const FROM = 'Open Circle Markets <onboarding@resend.dev>'
+const FROM = 'Open Circle Markets <noreply@opencirclemarkets.com>'
 const ADMIN_EMAIL = 'opencirclemarkets@gmail.com'
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://opencirclemarkets.com'
+const LOGO_URL = 'https://uavytnztojbjerlopaiz.supabase.co/storage/v1/object/public/vendor-photos/Opencirclelogo-1.png'
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -15,7 +17,7 @@ function emailWrapper(content: string) {
   return `
     <div style="font-family:Arial,sans-serif;background:#1b1f3b;color:#fff;padding:40px;border-radius:12px;max-width:600px;margin:0 auto">
       <div style="text-align:center;margin-bottom:32px">
-        <div style="display:inline-block;width:60px;height:60px;border-radius:50%;border:3px solid #f9d378;line-height:54px;font-size:24px;margin-bottom:12px">⭕</div>
+        <img src="${LOGO_URL}" alt="Open Circle Markets" style="height:72px;width:auto;display:block;margin:0 auto 12px" />
         <p style="color:#baa182;font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0">Open Circle Markets</p>
       </div>
       ${content}
@@ -183,7 +185,7 @@ export async function sendApplicationConfirmation(data: {
   })
 }
 
-/** Sent to applicant when Fraser approves their profile */
+/** Sent to applicant when Fraser approves their profile — includes pre-filled vendor agreement */
 export async function sendApplicationApproved(data: {
   email: string
   business_name: string
@@ -191,6 +193,11 @@ export async function sendApplicationApproved(data: {
   slug: string
 }) {
   const profileUrl = `${SITE_URL}/circle/${data.slug}`
+
+  const contractHtml = getVendorAgreementHtml({
+    vendorName:  data.business_name,
+    contactName: data.contact_name,
+  })
 
   await getResend().emails.send({
     from: FROM,
@@ -213,16 +220,28 @@ export async function sendApplicationApproved(data: {
         <p style="color:#c5b098;font-size:13px;margin:0;line-height:1.7">
           When an event organiser submits an enquiry that matches your category, you'll receive
           an email notification with the event details. Reply to express your interest and we'll
-          take it from there.<br /><br />
-          Please ensure you've read and signed your <strong style="color:#fff">Vendor Agreement</strong>
-          — if you haven't received it yet, reply to this email and we'll send it through.
+          take it from there.
+        </p>
+      </div>
+      <div style="background:#2a3356;border-radius:10px;padding:16px 20px;margin:20px 0;border:1px solid #f9d378">
+        <p style="color:#f9d378;font-size:13px;font-weight:700;margin:0 0 6px">📄 Vendor Agreement attached</p>
+        <p style="color:#c5b098;font-size:13px;margin:0;line-height:1.7">
+          Your Vendor Agreement is attached to this email with your details pre-filled.
+          Please open it, print or save as PDF, sign it, and reply to this email with the signed copy.
+          The remaining yellow fields (your address and our signature) will be completed on our end.
         </p>
       </div>
       <p style="color:#c5b098;line-height:1.7;font-size:13px">
         Any questions? Get in touch at <a href="mailto:${ADMIN_EMAIL}" style="color:#f9d378">${ADMIN_EMAIL}</a>
       </p>
       ${goldButton(profileUrl, 'View Your Profile →')}
-    `)
+    `),
+    attachments: [
+      {
+        filename: `OCM-Vendor-Agreement-${data.business_name.replace(/[^a-z0-9]/gi, '-')}.html`,
+        content: Buffer.from(contractHtml, 'utf-8').toString('base64'),
+      },
+    ],
   })
 }
 
