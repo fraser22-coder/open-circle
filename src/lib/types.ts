@@ -14,13 +14,20 @@ export interface Vendor {
   is_available: boolean
   is_active: boolean
   is_beta: boolean
-  photos: string[]     // Supabase Storage URLs
+  photos: string[]        // Supabase Storage URLs
   logo_url: string | null
   suitable_for: string[]
   user_id: string | null  // linked vendor login
   instagram: string | null
   website: string | null
   menu_urls?: string[] | null
+  // Added for vendor application + review flow
+  email?: string | null
+  tagline?: string | null
+  food_photo_urls?: string[] | null
+  space?: string | null
+  review_status?: string | null
+  application_id?: string | null
 }
 
 export interface Enquiry {
