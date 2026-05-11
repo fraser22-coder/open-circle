@@ -1,6 +1,5 @@
 import { Resend } from 'resend'
 import { Enquiry, Vendor } from './types'
-import { getVendorAgreementHtml } from './contractTemplate'
 
 // TODO: switch back to 'Open Circle Markets <noreply@opencirclemarkets.com>' once domain is verified in Resend
 const FROM = 'Open Circle Markets <onboarding@resend.dev>'
@@ -186,19 +185,32 @@ export async function sendApplicationConfirmation(data: {
   })
 }
 
-/** Sent to applicant when Fraser approves their profile — includes pre-filled vendor agreement */
+/** Sent to applicant when Fraser approves their profile — includes the vendor agreement PDF */
 export async function sendApplicationApproved(data: {
   email: string
   business_name: string
   contact_name: string
   slug: string
 }) {
-  const profileUrl = `${SITE_URL}/circle/${data.slug}`
+  const profileUrl   = `${SITE_URL}/circle/${data.slug}`
+  const contractUrl  = process.env.VENDOR_AGREEMENT_PDF_URL
 
-  const contractHtml = getVendorAgreementHtml({
-    vendorName:  data.business_name,
-    contactName: data.contact_name,
-  })
+  // Fetch the PDF from Supabase storage and attach it
+  let attachments: { filename: string; content: string }[] = []
+  if (contractUrl) {
+    try {
+      const pdfRes = await fetch(contractUrl)
+      if (pdfRes.ok) {
+        const pdfBuffer = await pdfRes.arrayBuffer()
+        attachments = [{
+          filename: 'OCM-Vendor-Agreement.pdf',
+          content:  Buffer.from(pdfBuffer).toString('base64'),
+        }]
+      }
+    } catch (err) {
+      console.error('Failed to fetch contract PDF:', err)
+    }
+  }
 
   await getResend().emails.send({
     from: FROM,
@@ -227,9 +239,9 @@ export async function sendApplicationApproved(data: {
       <div style="background:#2a3356;border-radius:10px;padding:16px 20px;margin:20px 0;border:1px solid #f9d378">
         <p style="color:#f9d378;font-size:13px;font-weight:700;margin:0 0 6px">📄 Vendor Agreement attached</p>
         <p style="color:#c5b098;font-size:13px;margin:0;line-height:1.7">
-          Your Vendor Agreement is attached to this email with your details pre-filled.
-          Please open it, print or save as PDF, sign it, and reply to this email with the signed copy.
-          The remaining yellow fields (your address and our signature) will be completed on our end.
+          Your Vendor Agreement is attached to this email. Please print or save it, sign it,
+          and reply with the signed copy. Fill in your address and the date before signing —
+          we'll countersign and send you a fully executed copy.
         </p>
       </div>
       <p style="color:#c5b098;line-height:1.7;font-size:13px">
@@ -237,12 +249,7 @@ export async function sendApplicationApproved(data: {
       </p>
       ${goldButton(profileUrl, 'View Your Profile →')}
     `),
-    attachments: [
-      {
-        filename: `OCM-Vendor-Agreement-${data.business_name.replace(/[^a-z0-9]/gi, '-')}.html`,
-        content: Buffer.from(contractHtml, 'utf-8').toString('base64'),
-      },
-    ],
+    attachments,
   })
 }
 
