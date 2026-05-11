@@ -4,13 +4,6 @@ import { sendApplicationConfirmation } from '@/lib/email'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-}
-
 async function generateVendorProfile(application: {
   business_name: string
   category: string
@@ -155,17 +148,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to submit application. Please try again.' }, { status: 500 })
   }
 
-  // ── Send confirmation email to applicant ──────────────────────────────────
+  // ── Send confirmation email ───────────────────────────────────────────────
   await sendApplicationConfirmation({
     email:         email.trim().toLowerCase(),
     business_name: business_name.trim(),
     contact_name:  contact_name.trim(),
   }).catch(err => console.error('Confirmation email failed:', err))
 
-  // ── Generate draft profile with Claude ────────────────────────────────────
-  let profile: { name: string; description: string; tagline: string; price_range: string }
+  // ── Generate profile with Claude + save to application record ─────────────
+  // NOTE: We do NOT insert into the vendors table here.
+  // The vendor row is only created when Fraser approves in the admin review.
   try {
-    profile = await generateVendorProfile({
+    const profile = await generateVendorProfile({
       business_name: business_name.trim(),
       category,
       location:      location.trim(),
@@ -173,34 +167,21 @@ export async function POST(req: NextRequest) {
       space,
       description:   description.trim(),
     })
+
+    await supabaseAdmin
+      .from('vendor_applications')
+      .update({
+        generated_name:        profile.name,
+        generated_description: profile.description,
+        generated_tagline:     profile.tagline,
+        generated_price_range: profile.price_range,
+      })
+      .eq('id', application.id)
+
   } catch (err) {
+    // Non-fatal — application is saved and confirmation email sent.
+    // Fraser will see it in the admin panel without a generated preview.
     console.error('Claude profile generation failed:', err)
-    return NextResponse.json({ success: true })
-  }
-
-  // ── Save draft vendor profile (hidden until approved) ─────────────────────
-  const { error: vendorError } = await supabaseAdmin
-    .from('vendors')
-    .insert({
-      name:            profile.name,
-      slug:            slugify(profile.name),
-      category,
-      description:     profile.description,
-      tagline:         profile.tagline,
-      location:        location.trim(),
-      price_range:     profile.price_range,
-      space,
-      logo_url:        logoUrl,
-      food_photo_urls: foodPhotoUrls,
-      is_active:       false,
-      is_available:    false,
-      is_beta:         false,
-      review_status:   'pending',
-      application_id:  application.id,
-    })
-
-  if (vendorError) {
-    console.error('Vendor draft insert error:', vendorError)
   }
 
   return NextResponse.json({ success: true })
