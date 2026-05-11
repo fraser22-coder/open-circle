@@ -28,17 +28,11 @@ interface FormState {
   space: string
 }
 
-interface PhotoState {
-  logo: File | null
-  foodPhotos: File[]
-}
-
 function PhotoDropZone({
-  label, hint, accept, multiple, onFiles, previews, onRemove,
+  label, hint, multiple, onFiles, previews, onRemove,
 }: {
   label: string
   hint: string
-  accept: string
   multiple: boolean
   onFiles: (files: File[]) => void
   previews: { url: string; name: string }[]
@@ -77,7 +71,7 @@ function PhotoDropZone({
         <input
           ref={inputRef}
           type="file"
-          accept={accept}
+          accept="image/*"
           multiple={multiple}
           style={{ display: 'none' }}
           onChange={e => {
@@ -92,11 +86,10 @@ function PhotoDropZone({
           {previews.map((p, i) => (
             <div key={i} style={{ position: 'relative' }}>
               <img src={p.url} alt={p.name} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: '8px', border: '2px solid #3c4f80' }} />
-              <button
-                type="button"
-                onClick={e => { e.stopPropagation(); onRemove(i) }}
-                style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#f87171', border: 'none', color: '#fff', fontSize: '12px', cursor: 'pointer', lineHeight: '20px', padding: 0 }}
-              >×</button>
+              <button type="button" onClick={e => { e.stopPropagation(); onRemove(i) }}
+                style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#f87171', border: 'none', color: '#fff', fontSize: '12px', cursor: 'pointer', lineHeight: '20px', padding: 0 }}>
+                ×
+              </button>
             </div>
           ))}
         </div>
@@ -111,8 +104,9 @@ export default function ApplyPage() {
     business_name: '', contact_name: '', email: '', phone: '',
     category: '', description: '', location: '', price_range: '', space: '',
   })
-  const [photos, setPhotos] = useState<PhotoState>({ logo: null, foodPhotos: [] })
+  const [logo, setLogo] = useState<File | null>(null)
   const [logoPreviews, setLogoPreviews] = useState<{ url: string; name: string }[]>([])
+  const [foodPhotos, setFoodPhotos] = useState<File[]>([])
   const [foodPreviews, setFoodPreviews] = useState<{ url: string; name: string }[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -122,29 +116,26 @@ export default function ApplyPage() {
     setForm(prev => ({ ...prev, [field]: e.target.value }))
 
   const handleLogoFiles = (files: File[]) => {
-    const file = files[0]
-    setPhotos(prev => ({ ...prev, logo: file }))
-    setLogoPreviews([{ url: URL.createObjectURL(file), name: file.name }])
+    setLogo(files[0])
+    setLogoPreviews([{ url: URL.createObjectURL(files[0]), name: files[0].name }])
   }
 
   const handleFoodFiles = (files: File[]) => {
-    setPhotos(prev => {
-      const next = [...prev.foodPhotos, ...files].slice(0, 6)
-      setFoodPreviews(next.map(f => ({ url: URL.createObjectURL(f), name: f.name })))
-      return { ...prev, foodPhotos: next }
-    })
+    const next = [...foodPhotos, ...files].slice(0, 6)
+    setFoodPhotos(next)
+    setFoodPreviews(next.map(f => ({ url: URL.createObjectURL(f), name: f.name })))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
-    if (!photos.logo) { setError('Please upload your logo.'); return }
-    if (photos.foodPhotos.length === 0) { setError('Please upload at least one food or product photo.'); return }
+    if (!logo) { setError('Please upload your logo.'); return }
+    if (foodPhotos.length === 0) { setError('Please upload at least one food or product photo.'); return }
     setSubmitting(true)
     const fd = new FormData()
     Object.entries(form).forEach(([k, v]) => fd.append(k, v))
-    fd.append('logo', photos.logo)
-    photos.foodPhotos.forEach(f => fd.append('food_photos', f))
+    fd.append('logo', logo)
+    foodPhotos.forEach(f => fd.append('food_photos', f))
     try {
       const res = await fetch('/api/apply', { method: 'POST', body: fd })
       const data = await res.json()
@@ -156,12 +147,12 @@ export default function ApplyPage() {
     setSubmitting(false)
   }
 
-  const inputStyle: React.CSSProperties = {
+  const input: React.CSSProperties = {
     width: '100%', background: '#252d4a', border: '1px solid #3c4f80',
     borderRadius: '10px', color: '#f0e6d3', padding: '13px 16px',
     fontSize: '14px', outline: 'none', boxSizing: 'border-box',
   }
-  const labelStyle: React.CSSProperties = {
+  const lbl: React.CSSProperties = {
     display: 'block', color: '#baa182', fontSize: '13px', fontWeight: 700,
     marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.06em',
   }
@@ -172,7 +163,7 @@ export default function ApplyPage() {
         <div style={{ fontSize: '64px', marginBottom: '24px' }}>⭕</div>
         <h1 style={{ color: '#f9d378', fontSize: '28px', fontWeight: 900, margin: '0 0 16px' }}>Application Received!</h1>
         <p style={{ color: '#c5b098', lineHeight: 1.7, margin: '0 0 12px' }}>
-          Thanks for applying to join the Circle. We personally review every application and will be in touch within <strong style={{ color: '#f9d378' }}>3–5 business days</strong>.
+          We personally review every application and will be in touch within <strong style={{ color: '#f9d378' }}>3–5 business days</strong>.
         </p>
         <p style={{ color: '#6b7db3', fontSize: '13px', margin: '0 0 32px' }}>A confirmation email is on its way to you now.</p>
         <button onClick={() => router.push('/circle')}
@@ -196,54 +187,68 @@ export default function ApplyPage() {
 
         <form onSubmit={handleSubmit}>
 
+          {/* ── Business Details ── */}
           <div style={{ background: '#1e2541', border: '1px solid #3c4f80', borderRadius: '16px', padding: '28px', marginBottom: '20px' }}>
-            <h2 style={{ color: '#f0e6d3', fontSize: '16px', fontWeight: 800, margin: '0 0 24px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Business Details</h2>
+            <h2 style={{ color: '#f0e6d3', fontSize: '16px', fontWeight: 800, margin: '0 0 24px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Business Details
+            </h2>
+
             <div style={{ marginBottom: '18px' }}>
-              <label style={labelStyle}>Business Name <span style={{ color: '#f87171' }}>*</span></label>
-              <input required value={form.business_name} onChange={set('business_name')} style={inputStyle} placeholder="e.g. The Taco Guys" />
+              <label style={lbl}>Business Name <span style={{ color: '#f87171' }}>*</span></label>
+              <input required value={form.business_name} onChange={set('business_name')} style={input} placeholder="e.g. The Taco Guys" />
             </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '18px' }}>
               <div>
-                <label style={labelStyle}>Contact Name <span style={{ color: '#f87171' }}>*</span></label>
-                <input required value={form.contact_name} onChange={set('contact_name')} style={inputStyle} placeholder="Your full name" />
+                <label style={lbl}>Contact Name <span style={{ color: '#f87171' }}>*</span></label>
+                <input required value={form.contact_name} onChange={set('contact_name')} style={input} placeholder="Your full name" />
               </div>
               <div>
-                <label style={labelStyle}>Phone <span style={{ color: '#f87171' }}>*</span></label>
-                <input required value={form.phone} onChange={set('phone')} style={inputStyle} placeholder="+64 21 000 0000" type="tel" />
+                <label style={lbl}>Phone <span style={{ color: '#f87171' }}>*</span></label>
+                <input required value={form.phone} onChange={set('phone')} style={input} placeholder="+64 21 000 0000" type="tel" />
               </div>
             </div>
+
             <div style={{ marginBottom: '18px' }}>
-              <label style={labelStyle}>Email <span style={{ color: '#f87171' }}>*</span></label>
-              <input required value={form.email} onChange={set('email')} style={inputStyle} placeholder="you@yourbusiness.com" type="email" />
+              <label style={lbl}>Email <span style={{ color: '#f87171' }}>*</span></label>
+              <input required value={form.email} onChange={set('email')} style={input} placeholder="you@yourbusiness.com" type="email" />
             </div>
+
             <div style={{ marginBottom: '18px' }}>
-              <label style={labelStyle}>Location <span style={{ color: '#f87171' }}>*</span></label>
-              <input required value={form.location} onChange={set('location')} style={inputStyle} placeholder="e.g. Ponsonby, Auckland" />
+              <label style={lbl}>Location <span style={{ color: '#f87171' }}>*</span></label>
+              <input required value={form.location} onChange={set('location')} style={input} placeholder="e.g. Ponsonby, Auckland" />
             </div>
+
             <div>
-              <label style={labelStyle}>Category <span style={{ color: '#f87171' }}>*</span></label>
-              <select required value={form.category} onChange={set('category')} style={{ ...inputStyle, cursor: 'pointer' }}>
+              <label style={lbl}>Category <span style={{ color: '#f87171' }}>*</span></label>
+              <select required value={form.category} onChange={set('category')} style={{ ...input, cursor: 'pointer' }}>
                 <option value="">Select a category…</option>
                 {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
               </select>
             </div>
           </div>
 
+          {/* ── Your Offering ── */}
           <div style={{ background: '#1e2541', border: '1px solid #3c4f80', borderRadius: '16px', padding: '28px', marginBottom: '20px' }}>
-            <h2 style={{ color: '#f0e6d3', fontSize: '16px', fontWeight: 800, margin: '0 0 24px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Your Offering</h2>
+            <h2 style={{ color: '#f0e6d3', fontSize: '16px', fontWeight: 800, margin: '0 0 24px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Your Offering
+            </h2>
+
             <div style={{ marginBottom: '18px' }}>
-              <label style={labelStyle}>About Your Business <span style={{ color: '#f87171' }}>*</span></label>
+              <label style={lbl}>About Your Business <span style={{ color: '#f87171' }}>*</span></label>
               <textarea required value={form.description} onChange={set('description')} rows={4}
-                style={{ ...inputStyle, resize: 'vertical' }}
+                style={{ ...input, resize: 'vertical' }}
                 placeholder="Tell us what you do, what makes you special, and why you'd be great at private and corporate events…" />
             </div>
+
             <div style={{ marginBottom: '18px' }}>
-              <label style={labelStyle}>Price Range <span style={{ color: '#f87171' }}>*</span></label>
-              <input required value={form.price_range} onChange={set('price_range')} style={inputStyle}
+              <label style={lbl}>Price Range <span style={{ color: '#f87171' }}>*</span></label>
+              <input required value={form.price_range} onChange={set('price_range')} style={input}
                 placeholder="e.g. $15–$25 per person, or $500 minimum spend" />
             </div>
+
             <div>
-              <label style={labelStyle}>Space Required <span style={{ color: '#f87171' }}>*</span></label>
+              <label style={lbl}>Space Required <span style={{ color: '#f87171' }}>*</span></label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
                 {SPACES.map(s => (
                   <button key={s.value} type="button"
@@ -263,24 +268,21 @@ export default function ApplyPage() {
             </div>
           </div>
 
+          {/* ── Photos ── */}
           <div style={{ background: '#1e2541', border: '1px solid #3c4f80', borderRadius: '16px', padding: '28px', marginBottom: '28px' }}>
-            <h2 style={{ color: '#f0e6d3', fontSize: '16px', fontWeight: 800, margin: '0 0 24px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Photos</h2>
-            <PhotoDropZone
-              label="Your Logo" hint="PNG or JPG · Max 5MB" accept="image/*" multiple={false}
+            <h2 style={{ color: '#f0e6d3', fontSize: '16px', fontWeight: 800, margin: '0 0 24px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Photos
+            </h2>
+            <PhotoDropZone label="Your Logo" hint="PNG or JPG · Max 5MB" multiple={false}
               onFiles={handleLogoFiles} previews={logoPreviews}
-              onRemove={() => { setPhotos(p => ({ ...p, logo: null })); setLogoPreviews([]) }}
-            />
-            <PhotoDropZone
-              label="Food / Product Photos" hint="Up to 6 photos · PNG or JPG" accept="image/*" multiple={true}
+              onRemove={() => { setLogo(null); setLogoPreviews([]) }} />
+            <PhotoDropZone label="Food / Product Photos" hint="Up to 6 photos · PNG or JPG" multiple={true}
               onFiles={handleFoodFiles} previews={foodPreviews}
               onRemove={i => {
-                setPhotos(p => {
-                  const next = p.foodPhotos.filter((_, j) => j !== i)
-                  setFoodPreviews(next.map(f => ({ url: URL.createObjectURL(f), name: f.name })))
-                  return { ...p, foodPhotos: next }
-                })
-              }}
-            />
+                const next = foodPhotos.filter((_, j) => j !== i)
+                setFoodPhotos(next)
+                setFoodPreviews(next.map(f => ({ url: URL.createObjectURL(f), name: f.name })))
+              }} />
           </div>
 
           {error && (
