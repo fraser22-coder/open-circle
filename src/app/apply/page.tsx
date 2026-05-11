@@ -36,7 +36,10 @@ interface PhotoState {
 function PhotoDropZone({
   label, hint, accept, multiple, onFiles, previews, onRemove,
 }: {
-  label: string; hint: string; accept: string; multiple: boolean
+  label: string
+  hint: string
+  accept: string
+  multiple: boolean
   onFiles: (files: File[]) => void
   previews: { url: string; name: string }[]
   onRemove: (index: number) => void
@@ -71,8 +74,17 @@ function PhotoDropZone({
           Drag &amp; drop here, or <span style={{ color: '#f9d378', textDecoration: 'underline' }}>browse</span>
         </p>
         <p style={{ color: '#4a5a80', fontSize: '12px', margin: '6px 0 0' }}>{hint}</p>
-        <input ref={inputRef} type="file" accept={accept} multiple={multiple} style={{ display: 'none' }}
-          onChange={e => { const files = Array.from(e.target.files ?? []); if (files.length) onFiles(files); e.target.value = '' }}
+        <input
+          ref={inputRef}
+          type="file"
+          accept={accept}
+          multiple={multiple}
+          style={{ display: 'none' }}
+          onChange={e => {
+            const files = Array.from(e.target.files ?? [])
+            if (files.length) onFiles(files)
+            e.target.value = ''
+          }}
         />
       </div>
       {previews.length > 0 && (
@@ -80,10 +92,11 @@ function PhotoDropZone({
           {previews.map((p, i) => (
             <div key={i} style={{ position: 'relative' }}>
               <img src={p.url} alt={p.name} style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: '8px', border: '2px solid #3c4f80' }} />
-              <button type="button" onClick={e => { e.stopPropagation(); onRemove(i) }}
-                style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#f87171', border: 'none', color: '#fff', fontSize: '12px', cursor: 'pointer', lineHeight: '20px', padding: 0 }}>
-                ×
-              </button>
+              <button
+                type="button"
+                onClick={e => { e.stopPropagation(); onRemove(i) }}
+                style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: '#f87171', border: 'none', color: '#fff', fontSize: '12px', cursor: 'pointer', lineHeight: '20px', padding: 0 }}
+              >×</button>
             </div>
           ))}
         </div>
@@ -137,7 +150,9 @@ export default function ApplyPage() {
       const data = await res.json()
       if (res.ok) setSuccess(true)
       else setError(data.error || 'Something went wrong. Please try again.')
-    } catch { setError('Network error. Please try again.') }
+    } catch {
+      setError('Network error. Please try again.')
+    }
     setSubmitting(false)
   }
 
@@ -171,14 +186,16 @@ export default function ApplyPage() {
   return (
     <div style={{ background: '#1b1f3b', minHeight: '100vh', padding: '60px 20px' }}>
       <div style={{ maxWidth: '620px', margin: '0 auto' }}>
+
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <h1 style={{ color: '#f9d378', fontSize: '32px', fontWeight: 900, margin: '0 0 12px' }}>Join the Circle</h1>
           <p style={{ color: '#c5b098', lineHeight: 1.7, fontSize: '15px', margin: 0 }}>
             Apply to become a vendor on Open Circle Markets. We curate every vendor to ensure the best possible experience for event organisers across Auckland.
           </p>
         </div>
+
         <form onSubmit={handleSubmit}>
-          {/* Business Details */}
+
           <div style={{ background: '#1e2541', border: '1px solid #3c4f80', borderRadius: '16px', padding: '28px', marginBottom: '20px' }}>
             <h2 style={{ color: '#f0e6d3', fontSize: '16px', fontWeight: 800, margin: '0 0 24px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Business Details</h2>
             <div style={{ marginBottom: '18px' }}>
@@ -212,7 +229,6 @@ export default function ApplyPage() {
             </div>
           </div>
 
-          {/* Your Offering */}
           <div style={{ background: '#1e2541', border: '1px solid #3c4f80', borderRadius: '16px', padding: '28px', marginBottom: '20px' }}>
             <h2 style={{ color: '#f0e6d3', fontSize: '16px', fontWeight: 800, margin: '0 0 24px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Your Offering</h2>
             <div style={{ marginBottom: '18px' }}>
@@ -230,7 +246,8 @@ export default function ApplyPage() {
               <label style={labelStyle}>Space Required <span style={{ color: '#f87171' }}>*</span></label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
                 {SPACES.map(s => (
-                  <button key={s.value} type="button" onClick={() => setForm(prev => ({ ...prev, space: s.value }))}
+                  <button key={s.value} type="button"
+                    onClick={() => setForm(prev => ({ ...prev, space: s.value }))}
                     style={{
                       padding: '12px 8px', borderRadius: '10px',
                       border: `2px solid ${form.space === s.value ? '#f9d378' : '#3c4f80'}`,
@@ -246,14 +263,24 @@ export default function ApplyPage() {
             </div>
           </div>
 
-          {/* Photos */}
           <div style={{ background: '#1e2541', border: '1px solid #3c4f80', borderRadius: '16px', padding: '28px', marginBottom: '28px' }}>
             <h2 style={{ color: '#f0e6d3', fontSize: '16px', fontWeight: 800, margin: '0 0 24px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Photos</h2>
-            <PhotoDropZone label="Your Logo" hint="PNG or JPG · Max 5MB" accept="image/*" multiple={false}
-              onFiles={handleLogoFiles} previews={logoPreviews} onRemove={() => { setPhotos(p => ({ ...p, logo: null })); setLogoPreviews([]) }} />
-            <PhotoDropZone label="Food / Product Photos" hint="Up to 6 photos · PNG or JPG" accept="image/*" multiple={true}
+            <PhotoDropZone
+              label="Your Logo" hint="PNG or JPG · Max 5MB" accept="image/*" multiple={false}
+              onFiles={handleLogoFiles} previews={logoPreviews}
+              onRemove={() => { setPhotos(p => ({ ...p, logo: null })); setLogoPreviews([]) }}
+            />
+            <PhotoDropZone
+              label="Food / Product Photos" hint="Up to 6 photos · PNG or JPG" accept="image/*" multiple={true}
               onFiles={handleFoodFiles} previews={foodPreviews}
-              onRemove={i => { setPhotos(p => { const next = p.foodPhotos.filter((_, j) => j !== i); setFoodPreviews(next.map(f => ({ url: URL.createObjectURL(f), name: f.name }))); return { ...p, foodPhotos: next } }) }} />
+              onRemove={i => {
+                setPhotos(p => {
+                  const next = p.foodPhotos.filter((_, j) => j !== i)
+                  setFoodPreviews(next.map(f => ({ url: URL.createObjectURL(f), name: f.name })))
+                  return { ...p, foodPhotos: next }
+                })
+              }}
+            />
           </div>
 
           {error && (
@@ -272,9 +299,11 @@ export default function ApplyPage() {
             }}>
             {submitting ? 'Submitting…' : 'Submit Application →'}
           </button>
+
           <p style={{ color: '#4a5a80', fontSize: '12px', textAlign: 'center', marginTop: '16px' }}>
             We personally review every application. You'll hear back within 3–5 business days.
           </p>
+
         </form>
       </div>
     </div>
