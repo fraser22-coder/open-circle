@@ -1,7 +1,5 @@
 import Link from 'next/link'
-
 const mainSiteUrl = process.env.NEXT_PUBLIC_MAIN_SITE_URL || 'https://opencirclemarkets.com'
-
 export default function Footer() {
   return (
     <footer
@@ -10,7 +8,6 @@ export default function Footer() {
     >
       {/* Main footer content */}
       <div className="max-w-6xl mx-auto px-8 py-12 grid grid-cols-1 md:grid-cols-3 gap-10">
-
         {/* Brand column */}
         <div>
           <div className="text-[16px] font-bold text-gold mb-1">Open Circle Markets</div>
@@ -21,7 +18,6 @@ export default function Footer() {
             A curated collective of Auckland&apos;s finest vendors for private and corporate events.
           </p>
         </div>
-
         {/* Quick links */}
         <div>
           <div className="text-[12px] font-semibold tracking-widest uppercase mb-4" style={{ color: '#8b9cc8' }}>
@@ -33,7 +29,7 @@ export default function Footer() {
               { href: '/circle', label: 'Our Circle' },
               { href: '/how-it-works', label: 'How It Works' },
               { href: '/book', label: 'Book a Vendor' },
-              { href: '/join', label: 'Apply to Join' },
+              { href: '/apply', label: 'Apply to Join' },
             ].map(({ href, label }) => (
               <li key={href}>
                 <Link
@@ -47,7 +43,6 @@ export default function Footer() {
             ))}
           </ul>
         </div>
-
         {/* Back to main site + legal */}
         <div>
           <div className="text-[12px] font-semibold tracking-widest uppercase mb-4" style={{ color: '#8b9cc8' }}>
@@ -89,7 +84,6 @@ export default function Footer() {
           </ul>
         </div>
       </div>
-
       {/* Bottom bar */}
       <div
         className="border-t px-8 py-4 flex flex-col md:flex-row items-center justify-between gap-2"
