@@ -158,12 +158,20 @@ export default function AdminDashboard() {
             )}
             {enquiries.map(e => (
               <div key={e.id} className="rounded-2xl p-6 border" style={{ background: '#303e66', borderColor: '#3c4f80' }}>
+
+                {/* Header row: occasion + status */}
                 <div className="flex justify-between flex-wrap gap-3 mb-4">
                   <div>
                     <h3 className="text-[17px] font-bold text-white">{e.occasion}</h3>
                     <p className="text-[12px] mt-0.5" style={{ color: '#baa182' }}>
-                      {e.first_name} {e.last_name} · {e.email} · {e.phone}
+                      {e.first_name} {e.last_name} · <a href={`mailto:${e.email}`} style={{ color: '#f9d378' }}>{e.email}</a>
+                      {e.phone ? ` · ${e.phone}` : ''}
                     </p>
+                    {(e as any).organisation && (
+                      <p className="text-[12px] mt-0.5" style={{ color: '#baa182' }}>
+                        🏢 {(e as any).organisation}
+                      </p>
+                    )}
                     {(e as any).brief_vendors?.length > 0 && (
                       <p className="text-[12px] mt-1" style={{ color: '#f9d378' }}>
                         ⭐ Shortlisted: {(e as any).brief_vendors.map((v: any) => v.name).join(', ')}
@@ -173,7 +181,7 @@ export default function AdminDashboard() {
                   <select
                     value={e.status}
                     onChange={ev => updateEnquiryStatus(e.id, ev.target.value)}
-                    className="rounded-xl px-3 py-2 text-[12px] font-semibold border outline-none"
+                    className="rounded-xl px-3 py-2 text-[12px] font-semibold border outline-none self-start"
                     style={{ background: '#1b1f3b', borderColor: '#3c4f80', color: '#f9d378' }}
                   >
                     <option value="new">🔵 New</option>
@@ -182,17 +190,81 @@ export default function AdminDashboard() {
                     <option value="closed">🔴 Closed</option>
                   </select>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[12px]">
-                  <div><span style={{ color: '#baa182' }}>Date</span><br /><strong className="text-white">{e.event_date}</strong></div>
-                  <div><span style={{ color: '#baa182' }}>Location</span><br /><strong className="text-white">{e.event_location}</strong></div>
-                  <div><span style={{ color: '#baa182' }}>Guests</span><br /><strong className="text-white">{e.guest_count}</strong></div>
-                  <div><span style={{ color: '#baa182' }}>Budget</span><br /><strong className="text-gold">{e.budget ? `$${e.budget.toLocaleString()}` : 'N/A'}</strong></div>
+
+                {/* Key stats grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[12px] mb-3">
+                  <div className="rounded-xl p-3" style={{ background: '#1b1f3b' }}>
+                    <span style={{ color: '#baa182' }}>Date</span>
+                    <br /><strong className="text-white">{e.event_date}</strong>
+                  </div>
+                  <div className="rounded-xl p-3" style={{ background: '#1b1f3b' }}>
+                    <span style={{ color: '#baa182' }}>Location</span>
+                    <br /><strong className="text-white">{e.event_location}</strong>
+                  </div>
+                  <div className="rounded-xl p-3" style={{ background: '#1b1f3b' }}>
+                    <span style={{ color: '#baa182' }}>Guests</span>
+                    <br /><strong className="text-white">{e.guest_count}</strong>
+                  </div>
+                  <div className="rounded-xl p-3" style={{ background: '#1b1f3b' }}>
+                    <span style={{ color: '#baa182' }}>Budget</span>
+                    <br /><strong className="text-gold">{e.budget ? `$${e.budget.toLocaleString()}` : 'Not specified'}</strong>
+                  </div>
                 </div>
+
+                {/* Event details row */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-[12px] mb-3">
+                  <div className="rounded-xl p-3" style={{ background: '#1b1f3b' }}>
+                    <span style={{ color: '#baa182' }}>Event Type</span>
+                    <br /><strong className="text-white capitalize">{(e as any).event_type ?? '—'}</strong>
+                  </div>
+                  <div className="rounded-xl p-3" style={{ background: '#1b1f3b' }}>
+                    <span style={{ color: '#baa182' }}>Venue</span>
+                    <br /><strong className="text-white">{(e as any).venue_type || 'Not specified'}</strong>
+                  </div>
+                  <div className="rounded-xl p-3" style={{ background: '#1b1f3b' }}>
+                    <span style={{ color: '#baa182' }}>Vendor Categories Wanted</span>
+                    <br /><strong className="text-white capitalize">{(e as any).vendor_types?.join(', ') ?? '—'}</strong>
+                  </div>
+                </div>
+
+                {/* Requirements */}
+                {(e as any).requirements?.length > 0 && (
+                  <div className="rounded-xl p-3 mb-3 text-[12px]" style={{ background: '#1b1f3b' }}>
+                    <span style={{ color: '#baa182' }}>Special Requirements</span>
+                    <div className="flex flex-wrap gap-2 mt-1">
+                      {(e as any).requirements.map((r: string) => (
+                        <span key={r} className="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                          style={{ background: '#252d4a', color: '#c5b098', border: '1px solid #3c4f80' }}>
+                          {r}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Event notes */}
+                {(e as any).event_notes && (
+                  <div className="rounded-xl p-3 mb-3 text-[12px]" style={{ background: '#1b1f3b', borderLeft: '3px solid #f9d378' }}>
+                    <strong style={{ color: '#baa182' }}>Event Notes: </strong>
+                    <span style={{ color: '#c5b098' }}>{(e as any).event_notes}</span>
+                  </div>
+                )}
+
+                {/* Vendor notes */}
                 {e.vendor_notes && (
-                  <p className="mt-3 text-[12px] p-3 rounded-xl" style={{ background: '#1b1f3b', color: '#c5b098' }}>
-                    <strong style={{ color: '#baa182' }}>Notes: </strong>{e.vendor_notes}
+                  <div className="rounded-xl p-3 mb-3 text-[12px]" style={{ background: '#1b1f3b', borderLeft: '3px solid #baa182' }}>
+                    <strong style={{ color: '#baa182' }}>Vendor Notes: </strong>
+                    <span style={{ color: '#c5b098' }}>{e.vendor_notes}</span>
+                  </div>
+                )}
+
+                {/* Referral source */}
+                {(e as any).referral_source && (
+                  <p className="text-[11px] mt-2" style={{ color: '#4a5a80' }}>
+                    Found us via: {(e as any).referral_source}
                   </p>
                 )}
+
               </div>
             ))}
           </div>
@@ -209,6 +281,15 @@ export default function AdminDashboard() {
                   <p className="text-[12px] mt-0.5" style={{ color: '#baa182' }}>
                     {v.category} · {v.location} · {v.price_range}
                   </p>
+                  {v.email ? (
+                    <p className="text-[12px] mt-0.5" style={{ color: '#7ec8e3' }}>
+                      ✉ {v.email}
+                    </p>
+                  ) : (
+                    <p className="text-[12px] mt-0.5 font-semibold" style={{ color: '#f87171' }}>
+                      ⚠ No email — won&apos;t receive opportunity notifications
+                    </p>
+                  )}
                   <div className="flex gap-2 mt-2 flex-wrap">
                     {v.is_beta && (
                       <span className="text-[10px] px-2 py-0.5 rounded-full font-bold" style={{ background: '#3c4f80', color: '#f9d378' }}>Beta</span>
