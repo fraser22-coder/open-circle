@@ -109,7 +109,14 @@ export async function sendAdminAlert(enquiry: Enquiry) {
 
 /** Opportunity alert to a vendor about a new matched enquiry */
 export async function sendVendorOpportunity(vendor: Vendor, enquiry: Enquiry) {
-  const recipientEmail = vendor.email || ADMIN_EMAIL
+  if (!vendor.email) {
+    console.warn(
+      `[OCM] Vendor "${vendor.name}" (slug: ${vendor.slug}) has no email address in the database. ` +
+      `Skipping vendor opportunity notification. Add their email in Supabase to enable notifications.`
+    )
+    return
+  }
+  const recipientEmail = vendor.email
   const isShortlisted = enquiry.brief_vendors?.some(v => v.slug === vendor.slug)
 
   await getResend().emails.send({
