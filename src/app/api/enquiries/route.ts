@@ -126,13 +126,40 @@ export async function POST(req: NextRequest) {
     }
 
     if (vendorsToNotify.length) {
-      await Promise.allSettled(
-        vendorsToNotify.map(v => sendVendorOpportunity(v, enquiry as Enquiry))
-      )
-      await supabaseAdmin
-        .from('enquiries')
-        .update({ status: 'sent_to_vendors' })
-        .eq('id', enquiry.id)
+      const vendorsWithEmail = vendorsToNotify.filter(v => v.email)
+      const vendorsWithoutEmail = vendorsToNotify.filter(v => !v.email)
+
+      if (vendorsWithoutEmail.length) {
+        console.warn(
+          `[OCM] ${vendorsWithoutEmail.length} vendor(s) matched but have no email address and will NOT be notified: ` +
+          vendorsWithoutEmail.map(v => `${v.name} (${v.slug})`).join(', ') +
+          '. Add their emails in Supabase to fix this.'
+        )
+      }
+
+      if (vendorsWithEmail.length) {
+        const results = await Promise.allSettled(
+          vendorsWithEmail.map(v => sendVendorOpportunity(v, enquiry as Enquiry))
+        )
+        const succeeded = results.filter(r => r.status === 'fulfilled').length
+        const failed = results.filter(r => r.status === 'rejected').length
+        console.log(`[OCM] Vendor notifications: ${succeeded} sent, ${failed} failed, ${vendorsWithoutEmail.length} skipped (no email)`)
+        if (failed > 0) {
+          results.forEach((r, i) => {
+            if (r.status === 'rejected') {
+              console.error(`[OCM] Failed to notify vendor "${vendorsWithEmail[i]?.name}":`, r.reason)
+            }
+          })
+        }
+        await supabaseAdmin
+          .from('enquiries')
+          .update({ status: 'sent_to_vendors' })
+          .eq('id', enquiry.id)
+      } else {
+        console.warn('[OCM] No vendors with email addresses found to notify. Status left as "new".')
+      }
+    } else {
+      console.log('[OCM] No active+available vendors found matching this enquiry\'s categories. Status left as "new".')
     }
 
     return NextResponse.json({ success: true, id: enquiry.id })
