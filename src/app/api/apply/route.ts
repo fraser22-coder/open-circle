@@ -2,78 +2,50 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { sendApplicationConfirmation } from '@/lib/email'
 
-// ── Route handler ─────────────────────────────────────────────────────────────
+// Photos are uploaded directly from the browser to Supabase Storage via signed
+// URLs (/api/apply/upload-url). This route only receives text fields + the
+// resulting photo URLs as JSON — no files pass through Vercel.
 
 export async function POST(req: NextRequest) {
-  let formData: FormData
+  let body: {
+    business_name: string
+    contact_name: string
+    email: string
+    phone: string
+    category: string
+    description: string
+    location: string
+    price_range: string
+    space: string
+    logo_url: string
+    food_photo_urls: string[]
+  }
+
   try {
-    formData = await req.formData()
+    body = await req.json()
   } catch {
     return NextResponse.json({ error: 'Invalid request.' }, { status: 400 })
   }
 
-  const business_name = formData.get('business_name') as string
-  const contact_name  = formData.get('contact_name')  as string
-  const email         = formData.get('email')         as string
-  const phone         = formData.get('phone')         as string
-  const category      = formData.get('category')      as string
-  const description   = formData.get('description')   as string
-  const location      = formData.get('location')      as string
-  const price_range   = formData.get('price_range')   as string
-  const space         = formData.get('space')         as string
-  const logo          = formData.get('logo')          as File | null
-  const foodPhotos    = formData.getAll('food_photos') as File[]
+  const {
+    business_name, contact_name, email, phone, category,
+    description, location, price_range, space,
+    logo_url, food_photo_urls,
+  } = body
 
   if (!business_name || !contact_name || !email || !phone || !category ||
       !description || !location || !price_range || !space) {
     return NextResponse.json({ error: 'Please fill in all required fields.' }, { status: 400 })
   }
-  if (!logo) {
+  if (!logo_url) {
     return NextResponse.json({ error: 'Please upload your logo.' }, { status: 400 })
   }
-  if (foodPhotos.length === 0) {
+  if (!food_photo_urls?.length) {
     return NextResponse.json({ error: 'Please upload at least one food or product photo.' }, { status: 400 })
   }
 
-  // ── Upload photos ─────────────────────────────────────────────────────────
-  const safeEmail = email.trim().toLowerCase().replace(/[^a-z0-9]/g, '-')
-  const folder    = `${safeEmail}-${Date.now()}`
-  const BUCKET    = 'vendor-applications'
-
-  const logoExt    = logo.name.split('.').pop()?.toLowerCase() || 'jpg'
-  const logoPath   = `${folder}/logo.${logoExt}`
-  const logoBuffer = Buffer.from(await logo.arrayBuffer())
-
-  const { error: logoError } = await supabaseAdmin.storage
-    .from(BUCKET)
-    .upload(logoPath, logoBuffer, { contentType: logo.type, upsert: false })
-
-  if (logoError) {
-    console.error('Logo upload error:', logoError)
-    return NextResponse.json({ error: 'Failed to upload logo. Please try again.' }, { status: 500 })
-  }
-
-  const { data: { publicUrl: logoUrl } } = supabaseAdmin.storage
-    .from(BUCKET)
-    .getPublicUrl(logoPath)
-
-  const foodPhotoUrls: string[] = []
-  for (let i = 0; i < foodPhotos.length; i++) {
-    const photo       = foodPhotos[i]
-    const photoExt    = photo.name.split('.').pop()?.toLowerCase() || 'jpg'
-    const photoPath   = `${folder}/food-${i + 1}.${photoExt}`
-    const photoBuffer = Buffer.from(await photo.arrayBuffer())
-    const { error: photoError } = await supabaseAdmin.storage
-      .from(BUCKET)
-      .upload(photoPath, photoBuffer, { contentType: photo.type, upsert: false })
-    if (!photoError) {
-      const { data: { publicUrl } } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(photoPath)
-      foodPhotoUrls.push(publicUrl)
-    }
-  }
-
   // ── Save application ──────────────────────────────────────────────────────
-  const { data: application, error: appError } = await supabaseAdmin
+  const { error: appError } = await supabaseAdmin
     .from('vendor_applications')
     .insert({
       business_name:   business_name.trim(),
@@ -85,12 +57,10 @@ export async function POST(req: NextRequest) {
       location:        location.trim(),
       price_range:     price_range.trim(),
       space,
-      logo_url:        logoUrl,
-      food_photo_urls: foodPhotoUrls,
-      status:          'pending',
+      logo_url,
+      food_photo_urls,
+      status: 'pending',
     })
-    .select('id')
-    .single()
 
   if (appError) {
     console.error('Application insert error:', appError)
@@ -104,9 +74,7 @@ export async function POST(req: NextRequest) {
     contact_name:  contact_name.trim(),
   }).catch(err => console.error('Confirmation email failed:', err))
 
-  // NOTE: AI profile generation is intentionally NOT done here to keep this
-  // route fast and within Vercel's serverless timeout. Fraser can generate the
-  // profile on demand from the admin review panel before approving.
+  // NOTE: AI profile generation happens on demand in the admin review panel.
 
   return NextResponse.json({ success: true })
 }
