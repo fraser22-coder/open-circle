@@ -2,57 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { sendApplicationConfirmation } from '@/lib/email'
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-async function generateVendorProfile(application: {
-  business_name: string
-  category: string
-  location: string
-  price_range: string
-  space: string
-  description: string
-}): Promise<{ name: string; description: string; tagline: string; price_range: string }> {
-  const prompt = `You are helping Open Circle Markets (OCM), an Auckland-based curated vendor network for private and corporate events, generate a polished vendor profile from a new application.
-
-Application data:
-- Business name: ${application.business_name}
-- Category: ${application.category}
-- Location: ${application.location}
-- Price range (vendor's words): ${application.price_range}
-- Space required: ${application.space}
-- About them (vendor's words): ${application.description}
-
-Generate a JSON object with these exact fields:
-{
-  "name": "The business display name — keep it as submitted unless there's a clear typo",
-  "description": "2–3 sentences written in third person. Punchy, warm, and event-focused. Highlight what makes them unique and why they'd be great for a private or corporate event in Auckland.",
-  "tagline": "A single short tagline under 8 words. No full stop.",
-  "price_range": "A clean, formatted version of their price range (e.g. '$10–$20 per item'). Keep it brief."
-}
-
-Return ONLY valid JSON. No markdown, no explanation, just the JSON object.`
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': process.env.ANTHROPIC_API_KEY!,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 512,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  })
-
-  if (!res.ok) throw new Error('Claude API call failed')
-  const data = await res.json()
-  const text = data.content?.[0]?.text ?? ''
-  const cleaned = text.replace(/```json|```/g, '').trim()
-  return JSON.parse(cleaned)
-}
-
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -155,34 +104,9 @@ export async function POST(req: NextRequest) {
     contact_name:  contact_name.trim(),
   }).catch(err => console.error('Confirmation email failed:', err))
 
-  // ── Generate profile with Claude + save to application record ─────────────
-  // NOTE: We do NOT insert into the vendors table here.
-  // The vendor row is only created when Fraser approves in the admin review.
-  try {
-    const profile = await generateVendorProfile({
-      business_name: business_name.trim(),
-      category,
-      location:      location.trim(),
-      price_range:   price_range.trim(),
-      space,
-      description:   description.trim(),
-    })
-
-    await supabaseAdmin
-      .from('vendor_applications')
-      .update({
-        generated_name:        profile.name,
-        generated_description: profile.description,
-        generated_tagline:     profile.tagline,
-        generated_price_range: profile.price_range,
-      })
-      .eq('id', application.id)
-
-  } catch (err) {
-    // Non-fatal — application is saved and confirmation email sent.
-    // Fraser will see it in the admin panel without a generated preview.
-    console.error('Claude profile generation failed:', err)
-  }
+  // NOTE: AI profile generation is intentionally NOT done here to keep this
+  // route fast and within Vercel's serverless timeout. Fraser can generate the
+  // profile on demand from the admin review panel before approving.
 
   return NextResponse.json({ success: true })
 }
