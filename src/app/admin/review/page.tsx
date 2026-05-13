@@ -38,6 +38,7 @@ export default function ReviewPage() {
   const [applications, setApplications] = useState<PendingApplication[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [generatingProfile, setGeneratingProfile] = useState<string | null>(null)
   const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null)
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null)
 
@@ -59,6 +60,37 @@ export default function ReviewPage() {
   }
 
   useEffect(() => { fetchPending() }, [])
+
+  const handleGenerateProfile = async (application_id: string) => {
+    setGeneratingProfile(application_id)
+    try {
+      const res = await fetch('/api/admin/generate-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ application_id }),
+      })
+      const data = await res.json()
+      if (res.ok && data.profile) {
+        setApplications(prev => prev.map(a =>
+          a.id === application_id
+            ? {
+                ...a,
+                generated_name:        data.profile.name,
+                generated_description: data.profile.description,
+                generated_tagline:     data.profile.tagline,
+                generated_price_range: data.profile.price_range,
+              }
+            : a
+        ))
+        showToast('Profile generated!', 'success')
+      } else {
+        showToast(data.error || 'Generation failed.', 'error')
+      }
+    } catch {
+      showToast('Network error.', 'error')
+    }
+    setGeneratingProfile(null)
+  }
 
   const handleAction = async (application_id: string, action: 'approve' | 'deny') => {
     setActionLoading(application_id + action)
@@ -144,9 +176,23 @@ export default function ReviewPage() {
                   · submitted {new Date(app.created_at).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </span>
                 {!app.generated_name && (
-                  <span style={{ fontSize: '11px', color: '#f87171', marginLeft: 'auto' }}>
-                    ⚠ Profile generation pending
-                  </span>
+                  <button
+                    onClick={() => handleGenerateProfile(app.id)}
+                    disabled={generatingProfile === app.id}
+                    style={{
+                      marginLeft: 'auto',
+                      background: generatingProfile === app.id ? '#252d4a' : '#303e66',
+                      border: '1px solid #f9d378',
+                      borderRadius: '6px',
+                      color: '#f9d378',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '4px 10px',
+                      cursor: generatingProfile === app.id ? 'wait' : 'pointer',
+                    }}
+                  >
+                    {generatingProfile === app.id ? '✦ Generating…' : '✦ Generate Profile'}
+                  </button>
                 )}
               </div>
 
