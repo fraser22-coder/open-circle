@@ -15,6 +15,7 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
   const [menuLightbox, setMenuLightbox] = useState(false)
   const [menuPage, setMenuPage] = useState(0)
   const [inBrief, setInBrief] = useState(false)
+  const [logoFailed, setLogoFailed] = useState(false)
   const menuUrls = ((vendor as any).menu_urls as string[] | null | undefined) ?? []
   const hasMenu = menuUrls.length > 0
   const hasVideo = !!vendor.video_url
@@ -308,8 +309,8 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
             <div className="flex items-start gap-4 mb-6">
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0 border"
                 style={{ background: '#2a1000', borderColor: '#3c4f80' }}>
-                {vendor.logo_url?.trim()
-                  ? <Image src={vendor.logo_url} alt={vendor.name} width={80} height={80} className="object-contain rounded-xl" />
+                {vendor.logo_url?.trim() && !logoFailed
+                  ? <img src={vendor.logo_url} alt={vendor.name} width={80} height={80} className="object-contain rounded-xl w-full h-full" onError={() => setLogoFailed(true)} />
                   : <span>{vendor.category === 'food' ? '🍕' : '⭕'}</span>}
               </div>
               <div>
