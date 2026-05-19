@@ -28,6 +28,7 @@ export interface Vendor {
   space?: string | null
   review_status?: string | null
   application_id?: string | null
+  video_url?: string | null
 }
 
 export interface Enquiry {
