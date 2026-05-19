@@ -15,10 +15,10 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
   const [menuLightbox, setMenuLightbox] = useState(false)
   const [menuPage, setMenuPage] = useState(0)
   const [inBrief, setInBrief] = useState(false)
-  const [activeMedia, setActiveMedia] = useState<'photos' | 'video'>('photos')
   const menuUrls = ((vendor as any).menu_urls as string[] | null | undefined) ?? []
   const hasMenu = menuUrls.length > 0
   const hasVideo = !!vendor.video_url
+  const showVideo = hasVideo  // if video exists, show ONLY video — no photo slideshow
   // Check if vendor is in brief
   useEffect(() => {
     try {
@@ -26,9 +26,9 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
       setInBrief(brief.some((v: { slug: string }) => v.slug === vendor.slug))
     } catch {}
   }, [vendor])
-  // Auto-advance slideshow — pause when video tab is active or lightbox open
+  // Auto-advance slideshow — only when showing photos
   useEffect(() => {
-    if (!vendor?.photos?.length || lightbox || activeMedia === 'video') return
+    if (!vendor?.photos?.length || lightbox || showVideo) return
     const t = setInterval(() => setSlide(s => (s + 1) % vendor.photos.length), 4500)
     return () => clearInterval(t)
   }, [vendor, lightbox, activeMedia])
@@ -204,38 +204,10 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
       </div>
       <div className="max-w-[1000px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
 
-        {/* ── Media tab switcher (only shown when vendor has a video) ── */}
-        {hasVideo && (
-          <div className="flex gap-2 mb-3">
-            <button
-              onClick={() => setActiveMedia('photos')}
-              className="px-4 py-2 rounded-full text-[12px] font-bold transition-all"
-              style={{
-                background: activeMedia === 'photos' ? '#f9d378' : '#252d4a',
-                color: activeMedia === 'photos' ? '#1b1f3b' : '#baa182',
-                border: `1.5px solid ${activeMedia === 'photos' ? '#f9d378' : '#3c4f80'}`,
-              }}
-            >
-              📷 Photos
-            </button>
-            <button
-              onClick={() => setActiveMedia('video')}
-              className="px-4 py-2 rounded-full text-[12px] font-bold transition-all"
-              style={{
-                background: activeMedia === 'video' ? '#f9d378' : '#252d4a',
-                color: activeMedia === 'video' ? '#1b1f3b' : '#baa182',
-                border: `1.5px solid ${activeMedia === 'video' ? '#f9d378' : '#3c4f80'}`,
-              }}
-            >
-              ▶ Video
-            </button>
-          </div>
-        )}
-
-        {/* ── Hero: video embed ── */}
-        {activeMedia === 'video' && hasVideo && (
+        {/* ── Hero: video embed (replaces slideshow entirely when video_url is set) ── */}
+        {showVideo && (
           <div
-            className="relative w-full rounded-2xl overflow-hidden mb-4"
+            className="relative w-full rounded-2xl overflow-hidden mb-8"
             style={{ aspectRatio: '16/9', background: '#000' }}
           >
             <iframe
@@ -249,8 +221,8 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
           </div>
         )}
 
-        {/* ── Hero: photo slideshow ── */}
-        {activeMedia === 'photos' && (
+        {/* ── Hero: photo slideshow (only when no video) ── */}
+        {!showVideo && (
           <div
             className="relative w-full rounded-2xl overflow-hidden mb-4 cursor-pointer"
             style={{ aspectRatio: '16/9', background: '#303e66' }}
@@ -308,8 +280,8 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
           </div>
         )}
 
-        {/* Thumbnail strip — only in photos mode */}
-        {activeMedia === 'photos' && photos.length > 1 && (
+        {/* Thumbnail strip — only for photo-only vendors */}
+        {!showVideo && photos.length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
             {photos.map((url, i) => (
               <button
