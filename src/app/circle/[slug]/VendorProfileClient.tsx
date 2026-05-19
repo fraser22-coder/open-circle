@@ -308,9 +308,9 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
             <div className="flex items-start gap-4 mb-6">
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-xl flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0 border"
                 style={{ background: '#2a1000', borderColor: '#3c4f80' }}>
-                {vendor.logo_url
-                  ? <Image src={vendor.logo_url} alt="logo" width={80} height={80} className="object-contain rounded-xl" />
-                  : (vendor.category === 'food' ? '🍕' : '⭕')}
+                {vendor.logo_url?.trim()
+                  ? <Image src={vendor.logo_url} alt={vendor.name} width={80} height={80} className="object-contain rounded-xl" />
+                  : <span>{vendor.category === 'food' ? '🍕' : '⭕'}</span>}
               </div>
               <div>
                 <h1 className="text-[24px] sm:text-[32px] font-black text-white leading-tight">{vendor.name}</h1>
