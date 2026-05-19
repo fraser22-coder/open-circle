@@ -31,7 +31,7 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
     if (!vendor?.photos?.length || lightbox || showVideo) return
     const t = setInterval(() => setSlide(s => (s + 1) % vendor.photos.length), 4500)
     return () => clearInterval(t)
-  }, [vendor, lightbox, activeMedia])
+  }, [vendor, lightbox, showVideo])
   // Keyboard nav
   const handleKey = useCallback((e: KeyboardEvent) => {
     if (menuLightbox) {
