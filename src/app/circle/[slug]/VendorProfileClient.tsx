@@ -4,12 +4,10 @@ import Image from 'next/image'
 import Link from 'next/link'
 import NavBar from '@/components/NavBar'
 import { Vendor } from '@/lib/types'
-
 const CATEGORY_LABELS: Record<string, string> = {
   food: '🍕 Food', drinks: '🍹 Drinks',
   experience: '🎯 Experience', entertainment: '🎭 Entertainment',
 }
-
 export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
   const [slide, setSlide] = useState(0)
   const [lightbox, setLightbox] = useState(false)
@@ -17,10 +15,10 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
   const [menuLightbox, setMenuLightbox] = useState(false)
   const [menuPage, setMenuPage] = useState(0)
   const [inBrief, setInBrief] = useState(false)
-
+  const [activeMedia, setActiveMedia] = useState<'photos' | 'video'>('photos')
   const menuUrls = ((vendor as any).menu_urls as string[] | null | undefined) ?? []
   const hasMenu = menuUrls.length > 0
-
+  const hasVideo = !!vendor.video_url
   // Check if vendor is in brief
   useEffect(() => {
     try {
@@ -28,14 +26,12 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
       setInBrief(brief.some((v: { slug: string }) => v.slug === vendor.slug))
     } catch {}
   }, [vendor])
-
-  // Auto-advance slideshow
+  // Auto-advance slideshow — pause when video tab is active or lightbox open
   useEffect(() => {
-    if (!vendor?.photos?.length || lightbox) return
+    if (!vendor?.photos?.length || lightbox || activeMedia === 'video') return
     const t = setInterval(() => setSlide(s => (s + 1) % vendor.photos.length), 4500)
     return () => clearInterval(t)
-  }, [vendor, lightbox])
-
+  }, [vendor, lightbox, activeMedia])
   // Keyboard nav
   const handleKey = useCallback((e: KeyboardEvent) => {
     if (menuLightbox) {
@@ -51,22 +47,18 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
     if (e.key === 'ArrowRight') setLightboxSlide(s => (s + 1) % (vendor?.photos?.length || 1))
     if (e.key === 'ArrowLeft') setLightboxSlide(s => (s - 1 + (vendor?.photos?.length || 1)) % (vendor?.photos?.length || 1))
   }, [lightbox, menuLightbox, vendor, menuUrls])
-
   useEffect(() => {
     document.addEventListener('keydown', handleKey)
     return () => document.removeEventListener('keydown', handleKey)
   }, [handleKey])
-
   // Prevent scroll when any lightbox open
   useEffect(() => {
     if (lightbox || menuLightbox) document.body.style.overflow = 'hidden'
     else document.body.style.overflow = ''
     return () => { document.body.style.overflow = '' }
   }, [lightbox, menuLightbox])
-
   const openLightbox = (i: number) => { setLightboxSlide(i); setLightbox(true) }
   const openMenu = () => { setMenuPage(0); setMenuLightbox(true) }
-
   const toggleBrief = () => {
     try {
       const brief = JSON.parse(localStorage.getItem('circle_brief') || '[]')
@@ -81,12 +73,9 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
       window.dispatchEvent(new Event('brief-updated'))
     } catch {}
   }
-
   const photos = vendor.photos ?? []
-
   return (
     <>
-
       {/* ── Menu lightbox ───────────────────────────────────── */}
       {menuLightbox && hasMenu && (
         <div
@@ -105,16 +94,12 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
               className="object-contain"
               sizes="100vw"
             />
-
-            {/* Close */}
             <button
               onClick={() => setMenuLightbox(false)}
               className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-white text-xl z-10 hover:bg-white/20 transition-colors"
               style={{ background: 'rgba(0,0,0,0.6)' }}
               aria-label="Close menu"
             >✕</button>
-
-            {/* Prev / Next — only if multiple pages */}
             {menuUrls.length > 1 && (
               <>
                 <button
@@ -129,8 +114,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
                   style={{ background: 'rgba(0,0,0,0.55)' }}
                   aria-label="Next menu page"
                 >›</button>
-
-                {/* Page dots */}
                 <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
                   {menuUrls.map((_, i) => (
                     <button
@@ -142,13 +125,11 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
                     />
                   ))}
                 </div>
-
                 <p className="absolute bottom-12 left-1/2 -translate-x-1/2 text-[11px] text-white/30 hidden sm:block">
                   ESC to close · ← → to navigate pages
                 </p>
               </>
             )}
-
             {menuUrls.length === 1 && (
               <p className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[11px] text-white/30 hidden sm:block">
                 ESC to close · Click outside to dismiss
@@ -157,7 +138,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
           </div>
         </div>
       )}
-
       {/* ── Photo lightbox ──────────────────────────────────── */}
       {lightbox && photos.length > 0 && (
         <div
@@ -179,7 +159,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
               style={{ background: 'rgba(0,0,0,0.6)' }}
               aria-label="Close lightbox"
             >✕</button>
-
             {photos.length > 1 && (
               <>
                 <button
@@ -217,75 +196,120 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
           </div>
         </div>
       )}
-
       {/* Back breadcrumb */}
       <div className="px-4 sm:px-10 py-4 border-b" style={{ background: '#303e66', borderColor: '#3c4f80' }}>
         <Link href="/circle" className="text-gold text-[13px] font-semibold hover:opacity-75 flex items-center gap-1.5">
           ← Back to Our Circle
         </Link>
       </div>
-
       <div className="max-w-[1000px] mx-auto px-4 sm:px-10 py-6 sm:py-10">
 
-        {/* Hero slideshow */}
-        <div
-          className="relative w-full rounded-2xl overflow-hidden mb-4 cursor-pointer"
-          style={{ aspectRatio: '16/9', background: '#303e66' }}
-          onClick={() => photos.length > 0 && openLightbox(slide)}
-          title="Click to view fullscreen"
-        >
-          {photos.length > 0 ? (
-            <>
-              {photos.map((url, i) => (
-                <div key={i} className={`absolute inset-0 transition-opacity duration-500 ${i === slide ? 'opacity-100' : 'opacity-0'}`}>
-                  <Image src={url} alt={`${vendor.name} photo ${i + 1}`} fill className="object-cover" sizes="(max-width: 1000px) 100vw, 1000px" />
-                </div>
-              ))}
-              {photos.length > 1 && (
-                <>
-                  <button
-                    onClick={e => { e.stopPropagation(); setSlide(s => (s - 1 + photos.length) % photos.length) }}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-gold text-lg z-10 transition-all hover:bg-[#303e66]"
-                    style={{ background: 'rgba(27,31,59,0.8)', border: '1px solid #3c4f80' }}
-                    aria-label="Previous"
-                  >‹</button>
-                  <button
-                    onClick={e => { e.stopPropagation(); setSlide(s => (s + 1) % photos.length) }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-gold text-lg z-10 transition-all hover:bg-[#303e66]"
-                    style={{ background: 'rgba(27,31,59,0.8)', border: '1px solid #3c4f80' }}
-                    aria-label="Next"
-                  >›</button>
-                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-                    {photos.map((_, i) => (
-                      <button
-                        key={i}
-                        onClick={e => { e.stopPropagation(); setSlide(i) }}
-                        className="h-2 rounded-full transition-all"
-                        style={{ width: i === slide ? 22 : 8, background: i === slide ? '#f9d378' : 'rgba(255,255,255,0.3)' }}
-                        aria-label={`Photo ${i + 1}`}
-                      />
-                    ))}
-                  </div>
-                  <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-semibold z-10"
-                    style={{ background: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.7)' }}>
-                    ⛶ Tap to enlarge
-                  </div>
-                </>
-              )}
-            </>
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center gap-3"
-              style={{ background: 'linear-gradient(135deg,#1a0a05,#3d1a08,#8B2500)' }}>
-              <span className="text-6xl">{vendor.category === 'food' ? '🍕' : '📸'}</span>
-              <span className="text-[12px] uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                Photos coming soon
-              </span>
-            </div>
-          )}
-        </div>
+        {/* ── Media tab switcher (only shown when vendor has a video) ── */}
+        {hasVideo && (
+          <div className="flex gap-2 mb-3">
+            <button
+              onClick={() => setActiveMedia('photos')}
+              className="px-4 py-2 rounded-full text-[12px] font-bold transition-all"
+              style={{
+                background: activeMedia === 'photos' ? '#f9d378' : '#252d4a',
+                color: activeMedia === 'photos' ? '#1b1f3b' : '#baa182',
+                border: `1.5px solid ${activeMedia === 'photos' ? '#f9d378' : '#3c4f80'}`,
+              }}
+            >
+              📷 Photos
+            </button>
+            <button
+              onClick={() => setActiveMedia('video')}
+              className="px-4 py-2 rounded-full text-[12px] font-bold transition-all"
+              style={{
+                background: activeMedia === 'video' ? '#f9d378' : '#252d4a',
+                color: activeMedia === 'video' ? '#1b1f3b' : '#baa182',
+                border: `1.5px solid ${activeMedia === 'video' ? '#f9d378' : '#3c4f80'}`,
+              }}
+            >
+              ▶ Video
+            </button>
+          </div>
+        )}
 
-        {/* Thumbnail strip */}
-        {photos.length > 1 && (
+        {/* ── Hero: video embed ── */}
+        {activeMedia === 'video' && hasVideo && (
+          <div
+            className="relative w-full rounded-2xl overflow-hidden mb-4"
+            style={{ aspectRatio: '16/9', background: '#000' }}
+          >
+            <iframe
+              src={`${vendor.video_url}?rel=0&modestbranding=1`}
+              title={`${vendor.name} video`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="absolute inset-0 w-full h-full"
+              style={{ border: 'none' }}
+            />
+          </div>
+        )}
+
+        {/* ── Hero: photo slideshow ── */}
+        {activeMedia === 'photos' && (
+          <div
+            className="relative w-full rounded-2xl overflow-hidden mb-4 cursor-pointer"
+            style={{ aspectRatio: '16/9', background: '#303e66' }}
+            onClick={() => photos.length > 0 && openLightbox(slide)}
+            title="Click to view fullscreen"
+          >
+            {photos.length > 0 ? (
+              <>
+                {photos.map((url, i) => (
+                  <div key={i} className={`absolute inset-0 transition-opacity duration-500 ${i === slide ? 'opacity-100' : 'opacity-0'}`}>
+                    <Image src={url} alt={`${vendor.name} photo ${i + 1}`} fill className="object-cover" sizes="(max-width: 1000px) 100vw, 1000px" />
+                  </div>
+                ))}
+                {photos.length > 1 && (
+                  <>
+                    <button
+                      onClick={e => { e.stopPropagation(); setSlide(s => (s - 1 + photos.length) % photos.length) }}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-gold text-lg z-10 transition-all hover:bg-[#303e66]"
+                      style={{ background: 'rgba(27,31,59,0.8)', border: '1px solid #3c4f80' }}
+                      aria-label="Previous"
+                    >‹</button>
+                    <button
+                      onClick={e => { e.stopPropagation(); setSlide(s => (s + 1) % photos.length) }}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full flex items-center justify-center text-gold text-lg z-10 transition-all hover:bg-[#303e66]"
+                      style={{ background: 'rgba(27,31,59,0.8)', border: '1px solid #3c4f80' }}
+                      aria-label="Next"
+                    >›</button>
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+                      {photos.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={e => { e.stopPropagation(); setSlide(i) }}
+                          className="h-2 rounded-full transition-all"
+                          style={{ width: i === slide ? 22 : 8, background: i === slide ? '#f9d378' : 'rgba(255,255,255,0.3)' }}
+                          aria-label={`Photo ${i + 1}`}
+                        />
+                      ))}
+                    </div>
+                    <div className="absolute top-3 right-3 px-2.5 py-1 rounded-full text-[11px] font-semibold z-10"
+                      style={{ background: 'rgba(0,0,0,0.55)', color: 'rgba(255,255,255,0.7)' }}>
+                      ⛶ Tap to enlarge
+                    </div>
+                  </>
+                )}
+              </>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center gap-3"
+                style={{ background: 'linear-gradient(135deg,#1a0a05,#3d1a08,#8B2500)' }}>
+                <span className="text-6xl">{vendor.category === 'food' ? '🍕' : '📸'}</span>
+                <span className="text-[12px] uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  Photos coming soon
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Thumbnail strip — only in photos mode */}
+        {activeMedia === 'photos' && photos.length > 1 && (
           <div className="flex gap-2 overflow-x-auto pb-2 mb-6 scrollbar-hide">
             {photos.map((url, i) => (
               <button
@@ -307,7 +331,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
 
         {/* Content grid */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
-
           {/* Main */}
           <div>
             <div className="flex items-start gap-4 mb-6">
@@ -333,11 +356,9 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
                 </div>
               </div>
             </div>
-
             <p className="text-[15px] font-light leading-relaxed mb-7" style={{ color: '#c5b098' }}>
               {vendor.description}
             </p>
-
             <p className="text-[11px] font-bold uppercase tracking-[2px] mb-3.5" style={{ color: '#baa182' }}>
               Vendor Details
             </p>
@@ -356,7 +377,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
                 </div>
               ))}
             </div>
-
             {vendor.suitable_for?.length > 0 && (
               <>
                 <p className="text-[11px] font-bold uppercase tracking-[2px] mb-3" style={{ color: '#baa182' }}>Suitable For</p>
@@ -371,7 +391,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
               </>
             )}
           </div>
-
           {/* Sidebar */}
           <div>
             <div className="rounded-2xl p-5 sm:p-7 border lg:sticky lg:top-[90px]"
@@ -380,7 +399,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
               <p className="text-[13px] font-light leading-relaxed mb-5" style={{ color: '#c5b098' }}>
                 Submit your event details and {vendor.name} will come back with availability and a quote if required.
               </p>
-
               <Link
                 href={`/book?vendor=${vendor.slug}`}
                 className="block w-full text-center py-3.5 rounded-full text-[15px] font-bold mb-3 transition-opacity hover:opacity-90"
@@ -388,7 +406,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
               >
                 Request This Vendor
               </Link>
-
               {/* View Menu — hidden if no menu_urls */}
               {hasMenu && (
                 <button
@@ -399,7 +416,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
                   🍽️ View Menu{menuUrls.length > 1 ? ` (${menuUrls.length} pages)` : ''}
                 </button>
               )}
-
               <button
                 onClick={toggleBrief}
                 className="block w-full text-center py-3 rounded-full text-[13px] font-semibold transition-all border"
@@ -411,15 +427,12 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
               >
                 {inBrief ? '✓ In Your Brief' : '+ Add to Event Brief'}
               </button>
-
               {inBrief && (
                 <p className="text-[11px] mt-2.5 text-center" style={{ color: '#52b788' }}>
                   Saved to your brief · <Link href="/book" className="underline hover:opacity-75">Open booking form →</Link>
                 </p>
               )}
-
               <hr className="my-5 border-t" style={{ borderColor: '#3c4f80' }} />
-
               <p className="text-[11px] font-bold uppercase tracking-[2px] mb-3" style={{ color: '#baa182' }}>Availability</p>
               <div className="text-[12px] mb-2 flex items-center gap-2" style={{ color: '#baa182' }}>
                 <span className="inline-block w-2 h-2 rounded-full flex-shrink-0" style={{ background: '#52b788' }} />
@@ -428,9 +441,7 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
               <div className="text-[12px] flex items-center gap-2" style={{ color: '#baa182' }}>
                 <span>📅</span><span>Weekends &amp; weekdays available</span>
               </div>
-
               <hr className="my-5 border-t" style={{ borderColor: '#3c4f80' }} />
-
               <p className="text-[11px] font-bold uppercase tracking-[2px] mb-3" style={{ color: '#baa182' }}>Part of the Circle since</p>
               <div className="text-[12px] flex items-center gap-2 mb-2">
                 <span>⭕</span>
@@ -445,7 +456,6 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
           </div>
         </div>
       </div>
-
       <footer className="mt-16 sm:mt-20 py-7 px-6 sm:px-10 text-center text-[12px] border-t"
         style={{ background: '#303e66', borderColor: '#3c4f80', color: '#baa182' }}>
         <strong className="text-gold">Open Circle Markets</strong> &nbsp;·&nbsp; The Circle
