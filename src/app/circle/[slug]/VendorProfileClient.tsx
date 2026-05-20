@@ -296,7 +296,7 @@ export default function VendorProfileClient({ vendor }: { vendor: Vendor }) {
                 }}
                 aria-label={`View photo ${i + 1}`}
               >
-                <Image src={url} alt={`Thumbnail ${i + 1}`} fill className="object-cover" sizes="72px" />
+                <Image src={url} alt={`Thumbnail ${i + 1}`} fill className="object-cover" sizes="72px" unoptimized />
               </button>
             ))}
           </div>
