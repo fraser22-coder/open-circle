@@ -1,6 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    // Cache transformed images for 30 days (default is 60 seconds).
+    // Vendor photos rarely change — this kills most of the transformation
+    // and cache-write usage on Vercel's free tier.
+    minimumCacheTTL: 2592000,
     remotePatterns: [
       {
         protocol: 'https',
@@ -9,16 +13,12 @@ const nextConfig = {
       },
     ],
   },
-
   // Disable the X-Powered-By header (don't advertise Next.js)
   poweredByHeader: false,
-
   // Strict mode for React — catches potential issues early
   reactStrictMode: true,
-
   // Block direct access to source maps in production
   productionBrowserSourceMaps: false,
-
   // Additional security headers (supplements the middleware)
   async headers() {
     return [
@@ -39,5 +39,4 @@ const nextConfig = {
     ]
   },
 }
-
 export default nextConfig
