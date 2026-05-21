@@ -155,6 +155,34 @@ export async function sendVendorOpportunity(vendor: Vendor, enquiry: Enquiry) {
 
 // ── Vendor application emails ─────────────────────────────────────────────────
 
+/** Alert to Fraser when a new vendor application comes in */
+export async function sendApplicationAdminAlert(data: {
+  email: string
+  business_name: string
+  contact_name: string
+  phone: string
+  category: string
+  location: string
+}) {
+  await getResend().emails.send({
+    from: FROM,
+    to: ADMIN_EMAIL,
+    subject: `New Vendor Application — ${data.business_name}`,
+    html: emailWrapper(`
+      <h2 style="color:#f9d378;margin:0 0 16px">New Vendor Application</h2>
+      <div style="background:#303e66;border-radius:10px;padding:20px">
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Business:</strong> ${data.business_name}</p>
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Contact:</strong> ${data.contact_name}</p>
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Email:</strong> ${data.email}</p>
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Phone:</strong> ${data.phone}</p>
+        <p style="margin:0 0 8px"><strong style="color:#baa182">Category:</strong> ${data.category}</p>
+        <p style="margin:0"><strong style="color:#baa182">Location:</strong> ${data.location}</p>
+      </div>
+      ${goldButton(`${SITE_URL}/admin`, 'Review Application →')}
+    `)
+  })
+}
+
 /** Confirmation to applicant immediately after they submit */
 export async function sendApplicationConfirmation(data: {
   email: string
