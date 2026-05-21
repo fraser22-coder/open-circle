@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { sendApplicationConfirmation } from '@/lib/email'
+import { sendApplicationConfirmation, sendApplicationAdminAlert } from '@/lib/email'
 
 // Photos are uploaded directly from the browser to Supabase Storage via signed
 // URLs (/api/apply/upload-url). This route only receives text fields + the
@@ -67,12 +67,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to submit application. Please try again.' }, { status: 500 })
   }
 
-  // ── Send confirmation email ───────────────────────────────────────────────
+  // ── Send emails ───────────────────────────────────────────────────────────
   await sendApplicationConfirmation({
     email:         email.trim().toLowerCase(),
     business_name: business_name.trim(),
     contact_name:  contact_name.trim(),
   }).catch(err => console.error('Confirmation email failed:', err))
+
+  await sendApplicationAdminAlert({
+    email:         email.trim().toLowerCase(),
+    business_name: business_name.trim(),
+    contact_name:  contact_name.trim(),
+    phone:         phone.trim(),
+    category,
+    location:      location.trim(),
+  }).catch(err => console.error('Admin application alert failed:', err))
 
   // NOTE: AI profile generation happens on demand in the admin review panel.
 
