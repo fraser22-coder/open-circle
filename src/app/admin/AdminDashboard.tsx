@@ -12,6 +12,8 @@ export default function AdminDashboard() {
   const [applications, setApplications] = useState<any[]>([])
   const [pendingProfiles, setPendingProfiles] = useState<number>(0)
   const [loading, setLoading] = useState(true)
+  const [resendingId, setResendingId] = useState<string | null>(null)
+  const [resendMessages, setResendMessages] = useState<Record<string, { ok: boolean; text: string }>>({})
 
   useEffect(() => {
     setLoading(true)
@@ -32,6 +34,31 @@ export default function AdminDashboard() {
   const logout = async () => {
     await fetch('/api/admin/logout', { method: 'POST' })
     router.push('/admin/login')
+  }
+
+  const resendToVendors = async (enquiry: Enquiry) => {
+    setResendingId(enquiry.id)
+    setResendMessages(prev => ({ ...prev, [enquiry.id]: { ok: true, text: 'Sending…' } }))
+    try {
+      const res = await fetch('/api/admin/resend-enquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enquiry_id: enquiry.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setResendMessages(prev => ({ ...prev, [enquiry.id]: { ok: false, text: data.error ?? 'Request failed.' } }))
+      } else {
+        setResendMessages(prev => ({ ...prev, [enquiry.id]: { ok: data.sent > 0, text: data.message } }))
+        if (data.sent > 0) {
+          setEnquiries(prev => prev.map(e => e.id === enquiry.id ? { ...e, status: 'sent_to_vendors' } : e))
+        }
+      }
+    } catch {
+      setResendMessages(prev => ({ ...prev, [enquiry.id]: { ok: false, text: 'Network error — try again.' } }))
+    } finally {
+      setResendingId(null)
+    }
   }
 
   const updateEnquiryStatus = async (id: string, status: string) => {
@@ -263,6 +290,31 @@ export default function AdminDashboard() {
                   <p className="text-[11px] mt-2" style={{ color: '#4a5a80' }}>
                     Found us via: {(e as any).referral_source}
                   </p>
+                )}
+
+                {/* Resend to vendors — shown for any enquiry not yet sent */}
+                {e.status === 'new' && (
+                  <div className="mt-4 flex items-center gap-3 flex-wrap">
+                    <button
+                      onClick={() => resendToVendors(e)}
+                      disabled={resendingId === e.id}
+                      className="px-5 py-2 rounded-full text-[12px] font-bold transition-opacity hover:opacity-80 disabled:opacity-50"
+                      style={{ background: '#f9d378', color: '#1b1f3b' }}
+                    >
+                      {resendingId === e.id ? 'Sending…' : '📤 Send to Vendors'}
+                    </button>
+                    {resendMessages[e.id] && (
+                      <span
+                        className="text-[12px] font-semibold px-3 py-1 rounded-full"
+                        style={{
+                          background: resendMessages[e.id].ok ? '#1d4731' : '#3a1a1a',
+                          color: resendMessages[e.id].ok ? '#b7e4c7' : '#f87171',
+                        }}
+                      >
+                        {resendMessages[e.id].text}
+                      </span>
+                    )}
+                  </div>
                 )}
 
               </div>
